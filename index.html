@@ -8,6 +8,10 @@
 <meta name="apple-mobile-web-app-title" content="SPINE">
 <meta name="theme-color" content="#0a0a0a">
 <title>SPINE — Your Books</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <style>
@@ -153,7 +157,7 @@ body.public-mode .card-fix-btn,body.public-mode .card-read-btn,body.public-mode 
 /* FIX MODAL */
 /* DETAIL MODAL */
 #detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;overflow-y:auto}
-#detail-overlay.active{display:flex;align-items:flex-start;justify-content:center;padding:calc(var(--safe-top)+32px) 12px 60px}
+#detail-overlay.active{display:flex;align-items:center;justify-content:center;padding:20px 12px}
 #detail-content{background:var(--surface);border:1px solid var(--border);border-radius:4px;width:100%;max-width:680px;padding:0;position:relative;overflow:hidden}
 #detail-body{display:flex;gap:0;align-items:flex-start}
 #detail-cover-col{flex-shrink:0;width:200px;background:var(--surface2)}
@@ -185,7 +189,7 @@ body.public-mode .card-fix-btn,body.public-mode .card-read-btn,body.public-mode 
   #detail-info{padding:16px}
 }
 #fix-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;overflow-y:auto}
-#fix-overlay.active{display:flex;align-items:flex-start;justify-content:center;padding:calc(var(--safe-top)+32px) 12px 60px}
+#fix-overlay.active{display:flex;align-items:center;justify-content:center;padding:20px 12px}
 #fix-content{background:var(--surface);border:1px solid var(--border);border-radius:4px;width:100%;max-width:560px;padding:24px;position:relative}
 .fix-title{font-family:'DM Serif Display',serif;font-size:1.1rem;margin-bottom:3px}
 .fix-sub{font-size:.7rem;color:var(--text-dim);margin-bottom:18px}
@@ -309,6 +313,15 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
           <option value="">Year</option>
         </select>
       </div>
+      <div style="flex:1"></div>
+      <select class="header-select" id="sort-select" onchange="sortOrder=this.value;applyFilters()" style="max-width:110px">
+        <option value="title">Title A–Z</option>
+        <option value="author">Author A–Z</option>
+        <option value="dateAdded">Date Added</option>
+        <option value="dateRead">Date Read</option>
+        <option value="rating">My Rating</option>
+        <option value="pages">Page Count</option>
+      </select>
     </div>
     <!-- Filter strip row -->
     <div id="filter-strip">
@@ -344,11 +357,11 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <option value="300-400">300–400</option>
         <option value="o400">400+</option>
       </select>
-      <select class="header-select" id="rating-filter-select" onchange="applyFilters()">
-        <option value="">★ Rating</option>
-        <option value="5">★★★★★</option>
-        <option value="4">★★★★+</option>
-        <option value="3">★★★+</option>
+      <select class="header-select" id="rating-filter-select" onchange="applyFilters()" style="max-width:68px">
+        <option value="">★</option>
+        <option value="5">5★</option>
+        <option value="4">4★+</option>
+        <option value="3">3★+</option>
       </select>
       <div class="decade-wrap">
         <button id="decade-btn" onclick="toggleDecadePopup(event)">Decade ▾</button>
@@ -366,16 +379,6 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
           <div class="decade-opt"><input type="checkbox" value="2020" onchange="applyDecades()"><span>2020s</span></div>
         </div>
       </div>
-      <div class="filter-sep"></div>
-      <span class="inline-label">Sort:</span>
-      <select class="header-select" id="sort-select" onchange="sortOrder=this.value;applyFilters()">
-        <option value="title">Title A–Z</option>
-        <option value="author">Author A–Z</option>
-        <option value="dateAdded">Date Added</option>
-        <option value="dateRead">Date Read</option>
-        <option value="rating">My Rating</option>
-        <option value="pages">Page Count</option>
-      </select>
     </div>
   </div>
 </div>
@@ -610,6 +613,7 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     <option value="COMIC">COMIC</option>
   </select>
   <button class="btn btn-accent" onclick="saveBulkEdit()" style="font-size:.68rem;padding:6px 11px">Apply</button>
+  <button class="btn" onclick="bulkDelete()" style="font-size:.68rem;padding:6px 11px;border-color:#ef4444;color:#ef4444" id="bulk-delete-btn">🗑 Remove</button>
   <button class="btn" onclick="exitSelectMode()" style="font-size:.68rem;padding:6px 11px">Cancel</button>
 </div>
 
@@ -2112,11 +2116,28 @@ async function saveBulkEdit() {
   exitSelectMode(); applyFilters(); updateStats();
 }
 
+async function bulkDelete() {
+  if (!selectedIds.size) { alert('Nothing selected.'); return; }
+  if (!confirm(`Remove ${selectedIds.size} book${selectedIds.size===1?'':'s'} from your collection? This cannot be undone.`)) return;
+  const ids = [...selectedIds];
+  // Delete from Supabase in batches of 50 (URL length limit)
+  const chunk = (arr, n) => Array.from({length:Math.ceil(arr.length/n)}, (_,i)=>arr.slice(i*n,i*n+n));
+  for (const batch of chunk(ids, 50)) {
+    const inClause = batch.map(id=>`"${id}"`).join(',');
+    await sbFetch(`books?id=in.(${encodeURIComponent(batch.join(','))})`, {method:'DELETE'}).catch(()=>{});
+    await sbFetch(`book_status?book_id=in.(${encodeURIComponent(batch.join(','))})`, {method:'DELETE'}).catch(()=>{});
+  }
+  // Remove from local array
+  books = books.filter(b => !selectedIds.has(String(b.id)));
+  exitSelectMode(); applyFilters(); updateStats();
+}
+
 // ═══════════════════════════════════════════════════════════════
 // KEYBOARD
 // ═══════════════════════════════════════════════════════════════
 document.addEventListener('keydown', e => {
   if (e.key==='Escape') {
+    if (document.getElementById('detail-overlay').classList.contains('active')) { closeDetailModal(); return; }
     if (document.getElementById('fix-overlay').classList.contains('active')) { closeFixModal(); return; }
     if (document.getElementById('add-overlay').classList.contains('active')) { closeAddModal(); return; }
     if (document.getElementById('import-overlay').classList.contains('active')) { closeImportModal(); return; }
