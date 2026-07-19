@@ -588,8 +588,10 @@ const SB_HDR = {'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':
 
 async function sbFetch(path, opts={}) {
   const r = await fetch(`${SB_URL}/rest/v1/${path}`, {headers:{...SB_HDR,...(opts.headers||{})}, ...opts});
-  if (!r.ok) { const t=await r.text(); throw new Error(t); }
-  return r.status===204 ? null : r.json();
+  if (!r.ok) { const t=await r.text(); throw new Error(t||`HTTP ${r.status}`); }
+  const text = await r.text();
+  if (!text) return null;
+  try { return JSON.parse(text); } catch { return null; }
 }
 
 async function loadAllBooks() {
@@ -1749,4 +1751,3 @@ document.addEventListener('keydown', e => {
 </script>
 </body>
 </html>
- 
