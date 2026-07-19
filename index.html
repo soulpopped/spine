@@ -295,6 +295,7 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     <div class="header-btns">
       <button class="icon-btn" id="random-btn" onclick="pickRandom()">📖 What to Read?</button>
       <button class="icon-btn" id="fetch-covers-btn" onclick="fetchAllCovers()">🎨 Fetch Covers</button>
+      <button class="icon-btn" id="reenrich-btn" onclick="reEnrichMissing()">🔄 Re-enrich</button>
       <button class="icon-btn" id="add-btn" onclick="openAddModal()">+ Add</button>
       <button class="icon-btn" id="import-btn" onclick="openImportModal()">⇑ Import</button>
       <button class="icon-btn" id="select-btn" onclick="enterSelectMode()">Select</button>
@@ -359,9 +360,9 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       </select>
       <select class="header-select" id="rating-filter-select" onchange="applyFilters()" style="max-width:90px">
         <option value="">Rating</option>
-        <option value="5">5★</option>
-        <option value="4">4★+</option>
-        <option value="3">3★+</option>
+        <option value="5">★★★★★</option>
+        <option value="4">★★★★+</option>
+        <option value="3">★★★+</option>
       </select>
       <div class="decade-wrap">
         <button id="decade-btn" onclick="toggleDecadePopup(event)">Decade ▾</button>
@@ -872,7 +873,7 @@ async function init() {
   showProgress('Loading SPINE…', 0);
   // Hide write-only buttons in public mode
   if (READ_ONLY) {
-    ['fetch-covers-btn','add-btn','import-btn','select-btn'].forEach(id => {
+    ['fetch-covers-btn','reenrich-btn','add-btn','import-btn','select-btn'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.display = 'none';
     });
@@ -1353,6 +1354,28 @@ async function fetchAllCovers() {
   btn.textContent = `🎨 Fetch Covers`;
 }
 
+// Re-enrich: retries all books missing a cover OR description, bypassing enrichPending cache
+async function reEnrichMissing() {
+  if (batchEnrichActive) { batchEnrichStopped = true; return; }
+  batchEnrichActive = true; batchEnrichStopped = false;
+  const btn = document.getElementById('reenrich-btn');
+  const missing = books.filter(b => (!b.cover && !b.customCover) || !b.description);
+  // Clear the pending cache so these get a fresh attempt
+  missing.forEach(b => enrichPending.delete(String(b.id)));
+  let done = 0;
+  btn.textContent = `⏹ Stop (0/${missing.length})`;
+  for (const book of missing) {
+    if (batchEnrichStopped) break;
+    enrichPending.add(String(book.id));
+    await enrichBook(String(book.id), book.isbn13||'', book.asin||'', book.title, book.author||'');
+    done++;
+    btn.textContent = `⏹ Stop (${done}/${missing.length})`;
+    await new Promise(r => setTimeout(r, 200));
+  }
+  batchEnrichActive = false;
+  btn.textContent = `🔄 Re-enrich`;
+}
+
 async function enrichBook(id, isbn, asin, title, author) {
   const idx = books.findIndex(b => String(b.id) === String(id));
   if (idx < 0) return;
@@ -1389,7 +1412,43 @@ async function enrichBook(id, isbn, asin, title, author) {
     } catch(e) {}
   }
 
-  // 3. Google Books — cover fallback + any remaining missing metadata (1,000 req/day cap)
+  // 3. Open Library search by title+author — no rate limit, catches books with no/wrong ISBN
+  if ((!coverUrl || !book.description || !book.yearPublished || !book.pages) && title) {
+    try {
+      const lastName = (author||'').trim().split(/\s+/).pop() || '';
+      const params = new URLSearchParams({title: title.slice(0,60), limit:'1',
+        fields:'cover_i,key,first_publish_year,number_of_pages_median,subject'});
+      if (lastName) params.set('author', lastName);
+      const r = await fetch(`https://openlibrary.org/search.json?${params}`);
+      const data = await r.json();
+      const doc = data.docs?.[0];
+      if (doc) {
+        if (!coverUrl && doc.cover_i) {
+          const url = `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`;
+          coverUrl = await new Promise(resolve => {
+            const img = new Image();
+            img.onload  = () => resolve(img.naturalWidth > 2 ? url : null);
+            img.onerror = () => resolve(null);
+            img.src = url;
+          });
+        }
+        if (doc.first_publish_year && !book.yearPublished) { book.yearPublished = doc.first_publish_year; changed = true; }
+        if (doc.number_of_pages_median && !book.pages) { book.pages = doc.number_of_pages_median; changed = true; }
+        if (doc.subject?.length && !book.genres?.length) { book.genres = doc.subject.slice(0,6); changed = true; }
+        // Fetch work description if still missing
+        if (!book.description && doc.key) {
+          try {
+            const wr = await fetch(`https://openlibrary.org${doc.key}.json`);
+            const work = await wr.json();
+            const desc = typeof work.description === 'string' ? work.description : work.description?.value || '';
+            if (desc) { book.description = desc; changed = true; }
+          } catch(e) {}
+        }
+      }
+    } catch(e) {}
+  }
+
+  // 4. Google Books — last resort (1,000 req/day cap)
   const needsMeta = !book.description || !book.pages || !book.yearPublished;
   const needsCover = !coverUrl;
   if ((needsCover || needsMeta) && (isbn || title)) {
