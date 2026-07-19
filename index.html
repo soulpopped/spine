@@ -108,7 +108,7 @@ label{display:block;font-size:.7rem;color:var(--text-dim);margin-bottom:5px;text
 
 /* GRID */
 #grid-wrap{padding-top:calc(var(--header-height) + var(--safe-top) + 10px)}
-#book-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;padding:10px 10px 80px}
+#book-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;padding:12px 12px 80px}
 .book-card{position:relative;cursor:pointer;border-radius:2px;overflow:hidden;background:var(--surface2);transition:transform .15s,box-shadow .15s}
 .book-card:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,.5)}
 .book-card.selected-card{outline:2px solid var(--accent)}
@@ -124,11 +124,11 @@ label{display:block;font-size:.7rem;color:var(--text-dim);margin-bottom:5px;text
 .card-read-btn{position:absolute;bottom:0;left:0;right:0;display:none;background:rgba(0,0,0,.82);border:none;border-top:1px solid rgba(255,255,255,.12);color:var(--s-read);font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:inherit;padding:6px;transition:background .15s}
 .book-card:hover .card-read-btn{display:block}
 .card-read-btn:hover{background:rgba(96,165,250,.18)}
-/* status dot */
-.status-dot{position:absolute;top:5px;right:5px;width:9px;height:9px;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.6)}
-.status-dot.reading{background:var(--s-reading)}
-.status-dot.read{background:var(--s-read)}
-.status-dot.reread{background:var(--s-reread)}
+/* status icon (replaces old dot) */
+.status-dot{position:absolute;top:5px;right:5px;font-size:.6rem;font-weight:700;letter-spacing:.02em;padding:2px 5px;border-radius:3px;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.55);font-family:inherit}
+.status-dot.reading{background:var(--s-reading);color:#1a1108}
+.status-dot.read{background:var(--s-read);color:#051c37}
+.status-dot.reread{background:var(--s-reread);color:#1a0929}
 /* format badges at bottom of cover */
 .card-badges{position:absolute;bottom:0;left:0;right:0;padding:2px 4px 3px;background:linear-gradient(transparent,rgba(0,0,0,.88));display:flex;gap:2px;flex-wrap:wrap;align-items:flex-end;min-height:20px}
 .fmt-badge{font-size:.56rem;font-weight:700;letter-spacing:.06em;padding:2px 5px;border-radius:1px;text-transform:uppercase}
@@ -138,9 +138,9 @@ label{display:block;font-size:.7rem;color:var(--text-dim);margin-bottom:5px;text
 .fmt-comic{background:rgba(220,40,40,.85);color:#fff}
 /* card meta below cover */
 .card-meta{padding:7px 8px 9px}
-.card-title{font-size:.8rem;line-height:1.3;color:var(--text);font-weight:500;margin-bottom:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.card-author{font-size:.68rem;color:var(--text-dim);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.card-pages{font-size:.62rem;color:var(--text-dim)}
+.card-title{font-size:.88rem;line-height:1.3;color:var(--text);font-weight:500;margin-bottom:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-author{font-size:.74rem;color:var(--text-dim);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-pages{font-size:.66rem;color:var(--text-dim)}
 .card-series{font-size:.6rem;color:var(--accent);opacity:.7;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .not-found-card .book-cover-placeholder{opacity:.4}
 .empty-state{text-align:center;padding:80px 24px;color:var(--text-dim);grid-column:1/-1}
@@ -220,7 +220,7 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
 .inline-label{font-size:.7rem;color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase;flex-shrink:0;white-space:nowrap}
 
 @media(max-width:600px){
-  #book-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px}
+  #book-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:9px}
   .header-row2{flex-wrap:nowrap}
 }
 </style>
@@ -276,11 +276,13 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     <!-- Filter strip -->
     <div id="filter-strip">
       <button class="fmt-toggle" data-fmt="KINDLE" onclick="toggleFormatFilter('KINDLE',this)">KINDLE</button>
-      <button class="fmt-toggle" data-fmt="PHYS" onclick="toggleFormatFilter('PHYS',this)">PHYS</button>
+      <button class="fmt-toggle" data-fmt="BOOK" onclick="toggleFormatFilter('BOOK',this)">BOOK</button>
       <button class="fmt-toggle" data-fmt="AUDIO" onclick="toggleFormatFilter('AUDIO',this)">AUDIO</button>
       <button class="fmt-toggle" data-fmt="COMIC" onclick="toggleFormatFilter('COMIC',this)">COMIC</button>
       <div class="filter-sep"></div>
-      <select class="header-select" id="genre-filter-select" onchange="applyFilters()" style="min-width:120px">
+      <input type="text" id="title-search" class="header-select" placeholder="Search…" oninput="applyFilters()" style="width:140px;padding:5px 8px;font-size:.75rem">
+      <div class="filter-sep"></div>
+      <select class="header-select" id="genre-filter-select" onchange="applyFilters()" style="max-width:95px">
         <option value="">Genre</option>
         <option value="Mystery, Thriller &amp; Suspense">Mystery &amp; Thriller</option>
         <option value="Science Fiction &amp; Fantasy">Sci-Fi &amp; Fantasy</option>
@@ -358,7 +360,7 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     <div class="fix-section">Formats</div>
     <div class="format-chips" id="fix-format-chips">
       <button class="format-chip" data-fmt="KINDLE" onclick="toggleFixFormat(this)">KINDLE</button>
-      <button class="format-chip" data-fmt="PHYS" onclick="toggleFixFormat(this)">PHYS</button>
+      <button class="format-chip" data-fmt="PHYS" onclick="toggleFixFormat(this)">BOOK</button>
       <button class="format-chip" data-fmt="AUDIO" onclick="toggleFixFormat(this)">AUDIO</button>
       <button class="format-chip" data-fmt="COMIC" onclick="toggleFixFormat(this)">COMIC</button>
     </div>
@@ -432,7 +434,7 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <label>Format(s) owned</label>
         <div class="format-chips" id="add-format-chips">
           <button class="format-chip" data-fmt="KINDLE" onclick="toggleAddFormat(this)">KINDLE</button>
-          <button class="format-chip" data-fmt="PHYS" onclick="toggleAddFormat(this)">PHYS</button>
+          <button class="format-chip" data-fmt="PHYS" onclick="toggleAddFormat(this)">BOOK</button>
           <button class="format-chip" data-fmt="AUDIO" onclick="toggleAddFormat(this)">AUDIO</button>
           <button class="format-chip" data-fmt="COMIC" onclick="toggleAddFormat(this)">COMIC</button>
         </div>
@@ -456,7 +458,7 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <label>Format(s) owned</label>
         <div class="format-chips" id="isbn-format-chips">
           <button class="format-chip" data-fmt="KINDLE" onclick="toggleIsbnFormat(this)">KINDLE</button>
-          <button class="format-chip" data-fmt="PHYS" onclick="toggleIsbnFormat(this)">PHYS</button>
+          <button class="format-chip" data-fmt="PHYS" onclick="toggleIsbnFormat(this)">BOOK</button>
           <button class="format-chip" data-fmt="AUDIO" onclick="toggleIsbnFormat(this)">AUDIO</button>
           <button class="format-chip" data-fmt="COMIC" onclick="toggleIsbnFormat(this)">COMIC</button>
         </div>
@@ -474,7 +476,7 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       <div class="form-group"><label>Format(s) owned</label>
         <div class="format-chips" id="man-format-chips">
           <button class="format-chip" data-fmt="KINDLE" onclick="toggleManFormat(this)">KINDLE</button>
-          <button class="format-chip" data-fmt="PHYS" onclick="toggleManFormat(this)">PHYS</button>
+          <button class="format-chip" data-fmt="PHYS" onclick="toggleManFormat(this)">BOOK</button>
           <button class="format-chip" data-fmt="AUDIO" onclick="toggleManFormat(this)">AUDIO</button>
           <button class="format-chip" data-fmt="COMIC" onclick="toggleManFormat(this)">COMIC</button>
         </div>
@@ -539,7 +541,7 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
   <select class="header-select" id="bulk-format-select">
     <option value="">— Set Format —</option>
     <option value="KINDLE">KINDLE</option>
-    <option value="PHYS">PHYS</option>
+    <option value="PHYS">BOOK</option>
     <option value="AUDIO">AUDIO</option>
     <option value="COMIC">COMIC</option>
   </select>
@@ -646,11 +648,30 @@ async function sbDeleteBook(id) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// GOOGLE BOOKS API
+// OPEN LIBRARY — cover images by ISBN (no API key, no rate limit)
+// Returns URL if a real cover exists, null otherwise.
+// OL returns a 1×1 blank GIF for missing entries — we check width.
+// ═══════════════════════════════════════════════════════════════
+function fetchOLCover(isbn13) {
+  if (!isbn13) return Promise.resolve(null);
+  const url = `https://covers.openlibrary.org/b/isbn/${isbn13}-L.jpg`;
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload  = () => resolve(img.naturalWidth > 2 ? url : null);
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GOOGLE BOOKS API — used for metadata (description, pages, etc.)
+// Hard-limited by Google to 1,000 req/day without an API key,
+// so we only fall back here when OL has no cover.
 // ═══════════════════════════════════════════════════════════════
 async function gbFetch(query) {
   try {
     const r = await fetch(`${GB_URL}?q=${encodeURIComponent(query)}&maxResults=8&fields=items(id,volumeInfo)`);
+    if (r.status === 429) return []; // rate limited — fail silently
     const j = await r.json();
     return (j.items || []).map(parseGBItem);
   } catch { return []; }
@@ -724,10 +745,12 @@ function parsePageRange(val) {
 function formatBadgesHTML(book) {
   const fmts = book.formats || [];
   let html = '';
+  // PHYS stored in DB, displayed as BOOK
   const order = ['KINDLE','PHYS','AUDIO','COMIC'];
-  const cls = {KINDLE:'fmt-kindle',PHYS:'fmt-phys',AUDIO:'fmt-audio',COMIC:'fmt-comic'};
+  const cls   = {KINDLE:'fmt-kindle',PHYS:'fmt-phys',AUDIO:'fmt-audio',COMIC:'fmt-comic'};
+  const label = {KINDLE:'KINDLE',PHYS:'BOOK',AUDIO:'AUDIO',COMIC:'COMIC'};
   order.forEach(f => {
-    if (fmts.includes(f)) html += `<span class="fmt-badge ${cls[f]}">${f}</span>`;
+    if (fmts.includes(f)) html += `<span class="fmt-badge ${cls[f]}">${label[f]}</span>`;
   });
   if (book.isComic && !fmts.includes('COMIC')) html += `<span class="fmt-badge fmt-comic">COMIC</span>`;
   return html;
@@ -867,6 +890,7 @@ document.addEventListener('click', () => document.getElementById('decade-popup')
 function applyFilters() {
   const genre = document.getElementById('genre-filter-select').value;
   const authorQ = document.getElementById('author-search').value.trim().toLowerCase();
+  const titleQ = document.getElementById('title-search').value.trim().toLowerCase();
   const pageRange = parsePageRange(document.getElementById('page-range-select').value);
   const minRating = parseInt(document.getElementById('rating-filter-select').value) || 0;
   const yearRead = document.getElementById('year-read-filter').value;
@@ -875,13 +899,16 @@ function applyFilters() {
     const status = getStatus(b.id);
     // Status
     if (currentStatus !== 'all' && status !== currentStatus) return false;
-    // Format
+    // Format — "BOOK" filter matches both "BOOK" and legacy "PHYS" in stored data
     if (selectedFormats.size > 0) {
       const bFmts = new Set([...(b.formats||[]), ...(b.isComic?['COMIC']:[])]);
+      if (bFmts.has('PHYS')) bFmts.add('BOOK'); // alias for display rename
       if (!([...selectedFormats].some(f => bFmts.has(f)))) return false;
     }
     // Genre
     if (!genreMatchesFilter(b, genre)) return false;
+    // Title
+    if (titleQ && !(b.title||'').toLowerCase().includes(titleQ)) return false;
     // Author
     if (authorQ && !(b.author||'').toLowerCase().includes(authorQ)) return false;
     // Pages (skip audio books for page filter)
@@ -928,6 +955,7 @@ function resetAllFilters() {
   document.querySelector('.status-pill[data-status="all"]').classList.add('active');
   document.querySelectorAll('.fmt-toggle').forEach(b=>{b.className='fmt-toggle'});
   document.getElementById('genre-filter-select').value='';
+  document.getElementById('title-search').value='';
   document.getElementById('author-search').value='';
   document.getElementById('page-range-select').value='';
   document.getElementById('rating-filter-select').value='';
@@ -971,6 +999,7 @@ function renderCard(book) {
   const needsEnrich = !cover && (book.isbn13 || book.asin || book.title);
   const nocover = !cover;
   const pages = book.audioLength ? formatAudioLen(book.audioLength) : (book.pages ? `${book.pages} pp` : '');
+  const statusIcon = {reading:'▶',read:'✓',reread:'↩'};
   const dotCls = status !== 'unread' ? `status-dot ${status}` : '';
   const readBtn = (!READ_ONLY && status==='unread') ? `<button class="card-read-btn" onclick="quickMarkRead(event,'${escId(book.id)}')">✓ Mark Read</button>` : '';
   const seriesInfo = book.series && book.seriesPosition ? `<div class="card-series">Book ${book.seriesPosition}: ${esc(book.series)}</div>` : (book.series ? `<div class="card-series">${esc(book.series)}</div>` : '');
@@ -980,7 +1009,7 @@ function renderCard(book) {
       ${cover
         ? `<img class="book-cover" src="${esc(cover)}" alt="${esc(book.title)}" loading="lazy">`
         : `<div class="book-cover-placeholder"><div class="placeholder-icon">📖</div><div class="placeholder-title">${esc(book.title)}</div></div>`}
-      ${dotCls ? `<div class="${dotCls}"></div>` : ''}
+      ${dotCls ? `<div class="${dotCls}">${statusIcon[status]||''}</div>` : ''}
       <div class="card-badges">${formatBadgesHTML(book)}</div>
       ${!READ_ONLY?`<button class="card-fix-btn" onclick="event.stopPropagation();openFixModal('${escId(book.id)}')">Edit</button>`:''}
       ${readBtn}
@@ -999,6 +1028,7 @@ function escId(s){ return String(s||'').replace(/'/g,"\\'"); }
 
 function cardClick(e, id) {
   if (inSelectMode) { toggleSelect(id); return; }
+  openFixModal(id);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1054,53 +1084,67 @@ async function fetchAllCovers() {
     }
     done++;
     btn.textContent = `⏹ Stop (${done}/${uncovered.length})`;
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(r => setTimeout(r, 100)); // OL is image loading, not a rate-limited API
   }
   batchEnrichActive = false;
   btn.textContent = `🎨 Fetch Covers`;
 }
 
 async function enrichBook(id, isbn, asin, title, author) {
-  let gb = null;
-  // ISBN-13 is most reliable
-  if (isbn && isbn.length >= 10) gb = await gbFetchByISBN(isbn);
-  // ASINs starting with B are NOT ISBNs — go straight to title+author search
-  if (!gb && title) {
-    const lastName = (author||'').split(' ').pop();
-    const q = lastName ? `intitle:${title.slice(0,40)} inauthor:${lastName}` : `intitle:${title.slice(0,40)}`;
-    gb = await gbFetchOne(q);
-  }
-  if (!gb) return;
-
   const idx = books.findIndex(b => String(b.id) === String(id));
   if (idx < 0) return;
   const book = books[idx];
-
   let changed = false;
-  if (gb.cover && !book.cover) { book.cover = gb.cover; changed = true; }
-  if (gb.description && !book.description) { book.description = gb.description; changed = true; }
-  if (gb.yearPublished && !book.yearPublished) { book.yearPublished = gb.yearPublished; changed = true; }
-  if (gb.publisher && !book.publisher) { book.publisher = gb.publisher; changed = true; }
-  if (gb.pages && !book.pages) { book.pages = gb.pages; changed = true; }
-  if (gb.isbn13 && !book.isbn13) { book.isbn13 = gb.isbn13; changed = true; }
+  let coverUrl = null;
 
-  if (changed) {
-    // Swap placeholder for real cover in DOM immediately
-    if (gb.cover) {
-      const cardEl = document.querySelector(`.book-card[data-id="${escId(id)}"]`);
-      if (cardEl) {
-        const wrap = cardEl.querySelector('.card-img-wrap');
-        const placeholder = wrap?.querySelector('.book-cover-placeholder');
-        if (placeholder) {
-          const img = document.createElement('img');
-          img.className = 'book-cover'; img.src = gb.cover;
-          img.alt = book.title; img.loading = 'lazy';
-          wrap.insertBefore(img, placeholder);
-          placeholder.remove();
-          cardEl.classList.remove('not-found-card');
-        }
+  // 1. Open Library — no rate limit, uses ISBN directly as image URL
+  if (isbn && isbn.length >= 10) {
+    coverUrl = await fetchOLCover(isbn);
+  }
+
+  // 2. Google Books — for metadata (description, pages, year) and cover fallback
+  //    Only query GB if we still need a cover or core metadata is missing
+  const needsMeta = !book.description || !book.pages || !book.yearPublished;
+  const needsCover = !coverUrl;
+  if ((needsCover || needsMeta) && (isbn || title)) {
+    let gb = null;
+    if (isbn && isbn.length >= 10) gb = await gbFetchByISBN(isbn);
+    if (!gb && title) {
+      const lastName = (author||'').split(' ').pop();
+      const q = lastName ? `intitle:${title.slice(0,40)} inauthor:${lastName}` : `intitle:${title.slice(0,40)}`;
+      gb = await gbFetchOne(q);
+    }
+    if (gb) {
+      if (!coverUrl && gb.cover) coverUrl = gb.cover;
+      if (gb.description && !book.description) { book.description = gb.description; changed = true; }
+      if (gb.yearPublished && !book.yearPublished) { book.yearPublished = gb.yearPublished; changed = true; }
+      if (gb.publisher && !book.publisher) { book.publisher = gb.publisher; changed = true; }
+      if (gb.pages && !book.pages) { book.pages = gb.pages; changed = true; }
+      if (gb.isbn13 && !book.isbn13) { book.isbn13 = gb.isbn13; changed = true; }
+    }
+  }
+
+  // Apply cover
+  if (coverUrl && !book.cover) {
+    book.cover = coverUrl;
+    changed = true;
+    // Swap placeholder in DOM immediately
+    const cardEl = document.querySelector(`.book-card[data-id="${escId(id)}"]`);
+    if (cardEl) {
+      const wrap = cardEl.querySelector('.card-img-wrap');
+      const placeholder = wrap?.querySelector('.book-cover-placeholder');
+      if (placeholder) {
+        const img = document.createElement('img');
+        img.className = 'book-cover'; img.src = coverUrl;
+        img.alt = book.title; img.loading = 'lazy';
+        wrap.insertBefore(img, placeholder);
+        placeholder.remove();
+        cardEl.classList.remove('not-found-card');
       }
     }
+  }
+
+  if (changed) {
     try { await sbSaveBook(book); } catch(e) { console.warn('Enrich save failed:', e.message); }
   }
 }
