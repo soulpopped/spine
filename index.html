@@ -17,7 +17,7 @@
   --accent:#e8c87a;--accent-dim:rgba(232,200,122,.12);
   --danger:#c0392b;
   --s-reading:#e8c87a;--s-read:#60a5fa;--s-reread:#c084fc;
-  --header-height:96px;--safe-top:env(safe-area-inset-top,0px);
+  --header-height:118px;--safe-top:env(safe-area-inset-top,0px);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;-webkit-font-smoothing:antialiased}
@@ -73,11 +73,13 @@ label{display:block;font-size:.7rem;color:var(--text-dim);margin-bottom:5px;text
 .header-btns{display:flex;gap:6px;align-items:center}
 .icon-btn{background:none;border:1px solid var(--border);border-radius:2px;color:var(--text-muted);cursor:pointer;padding:7px 14px;font-size:.82rem;transition:all .15s;white-space:nowrap;font-family:inherit}
 .icon-btn:hover{border-color:var(--text-muted);color:var(--text)}
-.header-row2{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.header-row2::-webkit-scrollbar{display:none}
-.header-select{padding:6px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--text-muted);font-family:inherit;font-size:.75rem;outline:none;cursor:pointer;flex-shrink:0}
+/* header-row2 = two stacked sub-rows */
+.header-row2{display:flex;flex-direction:column;gap:6px}
+.header-row2-pills{display:flex;gap:4px;align-items:center;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.header-row2-pills::-webkit-scrollbar{display:none}
+.header-select{padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--text-muted);font-family:inherit;font-size:.75rem;outline:none;cursor:pointer;flex-shrink:0}
 /* STATUS PILLS */
-.status-pills{display:flex;gap:4px;flex-wrap:nowrap;align-items:center;flex-shrink:0}
+.status-pills{display:flex;gap:4px;align-items:center;flex-wrap:nowrap}
 .status-pill{padding:5px 11px;border:1px solid var(--border);border-radius:2px;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);cursor:pointer;background:none;font-family:inherit;transition:all .15s;flex-shrink:0;white-space:nowrap}
 .status-pill:hover{border-color:var(--text-muted);color:var(--text-muted)}
 .status-pill.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
@@ -86,12 +88,12 @@ label{display:block;font-size:.7rem;color:var(--text-dim);margin-bottom:5px;text
 .status-pill[data-status="reread"].active{border-color:var(--s-reread);color:var(--s-reread);background:rgba(192,132,252,.12)}
 
 /* FILTER STRIP */
-#filter-strip{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;border-top:1px solid var(--border);padding-top:6px;margin-top:2px}
+#filter-strip{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 #filter-strip::-webkit-scrollbar{display:none}
 .fmt-toggle{padding:4px 9px;border:1px solid var(--border);border-radius:2px;font-size:.68rem;letter-spacing:.06em;font-weight:700;cursor:pointer;background:none;font-family:inherit;transition:all .15s;flex-shrink:0;white-space:nowrap;color:var(--text-dim)}
 .fmt-toggle:hover{border-color:var(--text-muted)}
 .fmt-toggle.active-kindle{background:rgba(255,153,0,.15);border-color:#ff9900;color:#ff9900}
-.fmt-toggle.active-phys{background:rgba(139,105,20,.2);border-color:#c8960a;color:#e8b012}
+.fmt-toggle.active-phys,.fmt-toggle.active-book{background:rgba(139,105,20,.2);border-color:#c8960a;color:#e8b012}
 .fmt-toggle.active-audio{background:rgba(139,92,246,.15);border-color:#8b5cf6;color:#a78bfa}
 .fmt-toggle.active-comic{background:rgba(239,68,68,.15);border-color:#ef4444;color:#f87171}
 .filter-sep{width:1px;height:18px;background:var(--border);flex-shrink:0}
@@ -149,6 +151,39 @@ label{display:block;font-size:.7rem;color:var(--text-dim);margin-bottom:5px;text
 body.public-mode .card-fix-btn,body.public-mode .card-read-btn,body.public-mode #select-btn,body.public-mode #add-btn{display:none!important}
 
 /* FIX MODAL */
+/* DETAIL MODAL */
+#detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;overflow-y:auto}
+#detail-overlay.active{display:flex;align-items:flex-start;justify-content:center;padding:calc(var(--safe-top)+32px) 12px 60px}
+#detail-content{background:var(--surface);border:1px solid var(--border);border-radius:4px;width:100%;max-width:680px;padding:0;position:relative;overflow:hidden}
+#detail-body{display:flex;gap:0;align-items:flex-start}
+#detail-cover-col{flex-shrink:0;width:200px;background:var(--surface2)}
+#detail-cover-img{width:200px;display:block;aspect-ratio:2/3;object-fit:cover}
+#detail-cover-ph{width:200px;aspect-ratio:2/3;display:flex;align-items:center;justify-content:center;font-size:3.5rem;color:var(--text-dim);background:var(--surface2)}
+#detail-info{flex:1;padding:24px 24px 24px 20px;min-width:0}
+#detail-series{font-size:.68rem;color:var(--accent);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;opacity:.85}
+#detail-title{font-family:'DM Serif Display',serif;font-size:1.5rem;line-height:1.2;margin-bottom:4px;color:var(--text)}
+#detail-author{font-size:.88rem;color:var(--text-dim);margin-bottom:12px}
+#detail-meta-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:14px}
+.detail-badge{font-size:.58rem;font-weight:700;letter-spacing:.1em;padding:2px 7px;border-radius:2px;text-transform:uppercase}
+#detail-status-pill{font-size:.68rem;font-weight:600;letter-spacing:.06em;padding:3px 9px;border-radius:3px;border:1px solid currentColor}
+#detail-year{font-size:.75rem;color:var(--text-dim)}
+#detail-pages{font-size:.75rem;color:var(--text-dim)}
+#detail-rating{display:flex;gap:2px;margin-bottom:14px}
+#detail-rating .star{font-size:1rem;color:var(--accent);opacity:.25}
+#detail-rating .star.lit{opacity:1}
+#detail-description{font-size:.82rem;line-height:1.6;color:var(--text-dim);margin-bottom:16px;max-height:220px;overflow-y:auto}
+#detail-genres{font-size:.7rem;color:var(--text-muted);margin-bottom:16px}
+#detail-footer{display:flex;gap:8px;align-items:center}
+#detail-edit-btn{background:var(--accent);color:#000;border:none;border-radius:2px;padding:7px 16px;font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;font-family:inherit}
+#detail-edit-btn:hover{opacity:.85}
+#detail-read-btn{background:transparent;border:1px solid var(--border);color:var(--text-dim);border-radius:2px;padding:7px 14px;font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;font-family:inherit}
+#detail-read-btn:hover{border-color:var(--s-read);color:var(--s-read)}
+#detail-description-loading{font-size:.78rem;color:var(--text-muted);font-style:italic}
+@media(max-width:560px){
+  #detail-body{flex-direction:column}
+  #detail-cover-col,#detail-cover-img,#detail-cover-ph{width:100%;aspect-ratio:3/2;object-fit:cover}
+  #detail-info{padding:16px}
+}
 #fix-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;overflow-y:auto}
 #fix-overlay.active{display:flex;align-items:flex-start;justify-content:center;padding:calc(var(--safe-top)+32px) 12px 60px}
 #fix-content{background:var(--surface);border:1px solid var(--border);border-radius:4px;width:100%;max-width:560px;padding:24px;position:relative}
@@ -262,27 +297,32 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     </div>
   </div>
   <div class="header-row2">
-    <!-- Status pills -->
-    <div class="status-pills">
-      <button class="status-pill active" data-status="all" onclick="setStatusFilter('all',this)">All</button>
-      <button class="status-pill" data-status="unread" onclick="setStatusFilter('unread',this)">Unread</button>
-      <button class="status-pill" data-status="reading" onclick="setStatusFilter('reading',this)">Reading</button>
-      <button class="status-pill" data-status="read" onclick="setStatusFilter('read',this)">Read</button>
-      <button class="status-pill" data-status="reread" onclick="setStatusFilter('reread',this)">To Re-read</button>
-      <select class="header-select" id="year-read-filter" onchange="applyFilters()" style="display:none;width:76px">
-        <option value="">Year</option>
-      </select>
+    <!-- Status pills row -->
+    <div class="header-row2-pills">
+      <div class="status-pills">
+        <button class="status-pill active" data-status="all" onclick="setStatusFilter('all',this)">All</button>
+        <button class="status-pill" data-status="unread" onclick="setStatusFilter('unread',this)">Unread</button>
+        <button class="status-pill" data-status="reading" onclick="setStatusFilter('reading',this)">Reading</button>
+        <button class="status-pill" data-status="read" onclick="setStatusFilter('read',this)">Read</button>
+        <button class="status-pill" data-status="reread" onclick="setStatusFilter('reread',this)">To Re-read</button>
+        <select class="header-select" id="year-read-filter" onchange="applyFilters()" style="display:none;width:76px">
+          <option value="">Year</option>
+        </select>
+      </div>
     </div>
-    <!-- Filter strip -->
+    <!-- Filter strip row -->
     <div id="filter-strip">
       <button class="fmt-toggle" data-fmt="KINDLE" onclick="toggleFormatFilter('KINDLE',this)">KINDLE</button>
       <button class="fmt-toggle" data-fmt="BOOK" onclick="toggleFormatFilter('BOOK',this)">BOOK</button>
       <button class="fmt-toggle" data-fmt="AUDIO" onclick="toggleFormatFilter('AUDIO',this)">AUDIO</button>
       <button class="fmt-toggle" data-fmt="COMIC" onclick="toggleFormatFilter('COMIC',this)">COMIC</button>
       <div class="filter-sep"></div>
-      <input type="text" id="title-search" class="header-select" placeholder="Search…" oninput="applyFilters()" style="width:140px;padding:5px 8px;font-size:.75rem">
+      <input type="text" id="title-search" class="header-select" placeholder="Title…" oninput="applyFilters()" style="width:120px;padding:5px 8px;font-size:.75rem">
       <div class="filter-sep"></div>
-      <select class="header-select" id="genre-filter-select" onchange="applyFilters()" style="max-width:95px">
+      <input type="text" id="author-search" class="header-select" placeholder="Author…" oninput="applyFilters()" style="width:110px;padding:5px 8px;font-size:.75rem">
+      <div class="filter-sep"></div>
+      <!-- genre hidden — values stored but filter deprioritised -->
+      <select class="header-select" id="genre-filter-select" onchange="applyFilters()" style="display:none">
         <option value="">Genre</option>
         <option value="Mystery, Thriller &amp; Suspense">Mystery &amp; Thriller</option>
         <option value="Science Fiction &amp; Fantasy">Sci-Fi &amp; Fantasy</option>
@@ -297,12 +337,9 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <option value="Self-Help">Self-Help</option>
         <option value="Business &amp; Money">Business</option>
       </select>
-      <div class="filter-sep"></div>
-      <input type="text" id="author-search" class="header-select" placeholder="Author…" oninput="applyFilters()" style="width:130px;padding:5px 8px;font-size:.75rem">
-      <div class="filter-sep"></div>
-      <select class="header-select" id="page-range-select" onchange="applyFilters()">
+      <select class="header-select" id="page-range-select" onchange="applyFilters()" style="max-width:80px">
         <option value="">Pages</option>
-        <option value="u200">Under 200</option>
+        <option value="u200">&lt;200</option>
         <option value="200-300">200–300</option>
         <option value="300-400">300–400</option>
         <option value="o400">400+</option>
@@ -350,6 +387,31 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
 
 </div><!-- #app -->
 
+<!-- DETAIL MODAL -->
+<div id="detail-overlay" onclick="if(event.target===this)closeDetailModal()">
+  <div id="detail-content">
+    <button class="modal-close" onclick="closeDetailModal()">✕</button>
+    <div id="detail-body">
+      <div id="detail-cover-col">
+        <div id="detail-cover-ph">📖</div>
+      </div>
+      <div id="detail-info">
+        <div id="detail-series"></div>
+        <div id="detail-title"></div>
+        <div id="detail-author"></div>
+        <div id="detail-meta-row"></div>
+        <div id="detail-rating"></div>
+        <div id="detail-description"><span id="detail-description-loading"></span></div>
+        <div id="detail-genres"></div>
+        <div id="detail-footer">
+          <button id="detail-edit-btn" onclick="detailToEdit()" style="display:none">✎ Edit</button>
+          <button id="detail-read-btn" onclick="detailMarkRead()" style="display:none">✓ Mark Read</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- FIX MODAL -->
 <div id="fix-overlay" onclick="if(event.target===this)closeFixModal()">
   <div id="fix-content">
@@ -374,7 +436,9 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     </div>
 
     <div class="fix-section">Book Info</div>
-    <div class="form-group"><label>Title</label><input type="text" id="fix-title"></div>
+    <div class="form-group"><label>Title <span style="font-weight:400;color:var(--text-dim)">(canonical)</span></label><input type="text" id="fix-title"></div>
+    <div class="form-group"><label>Display Title <span style="font-weight:400;color:var(--text-dim)">(shown in grid &amp; detail — leave blank to use Title)</span></label><input type="text" id="fix-display-title" placeholder="e.g. Anansi Boys: A Novel"></div>
+    <div class="form-group"><label>Sort Title <span style="font-weight:400;color:var(--text-dim)">(invisible — alphabetical order only)</span></label><input type="text" id="fix-sort-title" placeholder="e.g. Hitchhiker, Lord of the Rings"></div>
     <div class="form-group"><label>Author</label><input type="text" id="fix-author"></div>
     <div class="fix-row">
       <div class="form-group"><label>Year Published</label><input type="number" id="fix-year" min="1000" max="2099"></div>
@@ -859,13 +923,16 @@ function setStatusFilter(status, btn) {
 }
 
 function toggleFormatFilter(fmt, btn) {
-  const cls = 'active-'+fmt.toLowerCase();
+  // single-select: clear all others first
+  document.querySelectorAll('.fmt-toggle').forEach(b => {
+    b.className = 'fmt-toggle';
+  });
   if (selectedFormats.has(fmt)) {
-    selectedFormats.delete(fmt);
-    btn.classList.remove(cls);
+    selectedFormats.clear();
   } else {
+    selectedFormats.clear();
     selectedFormats.add(fmt);
-    btn.classList.add(cls);
+    btn.classList.add('active-' + fmt.toLowerCase());
   }
   applyFilters();
 }
@@ -907,8 +974,11 @@ function applyFilters() {
     }
     // Genre
     if (!genreMatchesFilter(b, genre)) return false;
-    // Title
-    if (titleQ && !(b.title||'').toLowerCase().includes(titleQ)) return false;
+    // Title — searches both canonical and display title
+    if (titleQ) {
+      const haystack = ((b.displayTitle||'') + ' ' + (b.title||'')).toLowerCase();
+      if (!haystack.includes(titleQ)) return false;
+    }
     // Author
     if (authorQ && !(b.author||'').toLowerCase().includes(authorQ)) return false;
     // Pages (skip audio books for page filter)
@@ -934,7 +1004,7 @@ function applyFilters() {
 
   // Sort
   filteredBooks.sort((a,b) => {
-    if (sortOrder==='title') return sortTitle(a.title).localeCompare(sortTitle(b.title));
+    if (sortOrder==='title') return sortTitle(a.sortTitle || a.displayTitle || a.title).localeCompare(sortTitle(b.sortTitle || b.displayTitle || b.title));
     if (sortOrder==='author') return (a.author||'').localeCompare(b.author||'');
     if (sortOrder==='dateAdded') return (b.dateAdded||'').localeCompare(a.dateAdded||'');
     if (sortOrder==='dateRead') return (b.dateRead||'').localeCompare(a.dateRead||'');
@@ -1016,7 +1086,7 @@ function renderCard(book) {
     </div>
     <div class="card-meta">
       ${seriesInfo}
-      <div class="card-title">${esc(book.title)}</div>
+      <div class="card-title">${esc(book.displayTitle || book.title)}</div>
       <div class="card-author">${esc(book.author||'')}</div>
       ${pages ? `<div class="card-pages">${pages}</div>` : ''}
     </div>
@@ -1028,7 +1098,180 @@ function escId(s){ return String(s||'').replace(/'/g,"\\'"); }
 
 function cardClick(e, id) {
   if (inSelectMode) { toggleSelect(id); return; }
-  openFixModal(id);
+  openDetailModal(id);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DETAIL MODAL
+// ═══════════════════════════════════════════════════════════════
+let detailBookId = null;
+
+function openDetailModal(id) {
+  detailBookId = String(id);
+  const book = books.find(b => String(b.id) === detailBookId);
+  if (!book) return;
+  const status = getStatus(detailBookId);
+
+  // Cover
+  const coverCol = document.getElementById('detail-cover-col');
+  coverCol.innerHTML = '';
+  if (book.customCover || book.cover) {
+    const img = document.createElement('img');
+    img.id = 'detail-cover-img'; img.src = book.customCover || book.cover; img.alt = book.title;
+    coverCol.appendChild(img);
+  } else {
+    const ph = document.createElement('div');
+    ph.id = 'detail-cover-ph'; ph.textContent = '📖';
+    coverCol.appendChild(ph);
+  }
+
+  // Series
+  const seriesEl = document.getElementById('detail-series');
+  seriesEl.textContent = book.series
+    ? (book.seriesPosition ? `${book.series} · Book ${book.seriesPosition}` : book.series)
+    : '';
+  seriesEl.style.display = book.series ? '' : 'none';
+
+  const displayedTitle = book.displayTitle || book.title || '';
+  document.getElementById('detail-title').textContent = displayedTitle;
+  // Show canonical title underneath if display title differs
+  const authorEl = document.getElementById('detail-author');
+  authorEl.innerHTML = '';
+  if (book.displayTitle && book.displayTitle !== book.title) {
+    const sub = document.createElement('div');
+    sub.style.cssText = 'font-size:.68rem;color:var(--text-muted);margin-bottom:4px;font-style:italic';
+    sub.textContent = book.title;
+    authorEl.appendChild(sub);
+  }
+  const authorText = document.createElement('div');
+  authorText.textContent = book.author || '';
+  authorEl.appendChild(authorText);
+
+  // Meta row: format badges + status + year + pages
+  const fmtLabel = {KINDLE:'KINDLE',PHYS:'BOOK',AUDIO:'AUDIO',COMIC:'COMIC'};
+  const fmtCls   = {KINDLE:'fmt-kindle',PHYS:'fmt-phys',AUDIO:'fmt-audio',COMIC:'fmt-comic'};
+  let metaHTML = (book.formats||[]).map(f =>
+    `<span class="detail-badge ${fmtCls[f]||''}">${fmtLabel[f]||f}</span>`
+  ).join('');
+  if (book.isComic && !(book.formats||[]).includes('COMIC'))
+    metaHTML += `<span class="detail-badge fmt-comic">COMIC</span>`;
+  if (status !== 'unread') {
+    const statusLabel = {reading:'Reading',read:'Read',reread:'To Re-read'};
+    const statusColor = {reading:'var(--s-reading)',read:'var(--s-read)',reread:'var(--s-reread)'};
+    metaHTML += `<span id="detail-status-pill" style="color:${statusColor[status]};border-color:${statusColor[status]}">${statusLabel[status]}</span>`;
+  }
+  if (book.yearPublished) metaHTML += `<span id="detail-year">${book.yearPublished}</span>`;
+  if (book.pages) metaHTML += `<span id="detail-pages">${book.pages} pp</span>`;
+  if (book.audioLength) metaHTML += `<span id="detail-pages">${formatAudioLen(book.audioLength)}</span>`;
+  document.getElementById('detail-meta-row').innerHTML = metaHTML;
+
+  // Rating stars
+  const rating = book.rating || 0;
+  document.getElementById('detail-rating').innerHTML = [1,2,3,4,5]
+    .map(i => `<span class="star${i<=rating?' lit':''}">★</span>`).join('');
+
+  // Description — show what we have, then try to fetch if missing
+  const descEl = document.getElementById('detail-description');
+  const loadingEl = document.getElementById('detail-description-loading');
+  if (book.description) {
+    descEl.textContent = book.description;
+  } else {
+    descEl.innerHTML = `<span id="detail-description-loading" style="color:var(--text-muted);font-style:italic">Loading description…</span>`;
+    fetchDescriptionForDetail(book);
+  }
+
+  // Genres
+  const genresEl = document.getElementById('detail-genres');
+  genresEl.textContent = (book.genres||[]).join(' · ');
+  genresEl.style.display = (book.genres||[]).length ? '' : 'none';
+
+  // Buttons
+  document.getElementById('detail-edit-btn').style.display = READ_ONLY ? 'none' : '';
+  document.getElementById('detail-read-btn').style.display =
+    (!READ_ONLY && status === 'unread') ? '' : 'none';
+
+  document.getElementById('detail-overlay').classList.add('active');
+}
+
+async function fetchDescriptionForDetail(book) {
+  // Try Open Library Books API first (no rate limit)
+  if (book.isbn13) {
+    try {
+      const r = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${book.isbn13}&jscmd=data&format=json`);
+      const data = await r.json();
+      const entry = data[`ISBN:${book.isbn13}`];
+      if (entry) {
+        const desc = typeof entry.description === 'string' ? entry.description
+          : entry.description?.value || '';
+        const subjects = (entry.subjects||[]).map(s=>typeof s==='string'?s:s.name).slice(0,5);
+        if (desc && String(book.id) === detailBookId) {
+          const descEl = document.getElementById('detail-description');
+          if (descEl) descEl.textContent = desc;
+          book.description = desc;
+        }
+        if (subjects.length && !book.genres?.length) {
+          book.genres = subjects;
+          const genresEl = document.getElementById('detail-genres');
+          if (genresEl && String(book.id) === detailBookId) {
+            genresEl.textContent = subjects.join(' · ');
+            genresEl.style.display = '';
+          }
+        }
+        if (desc || subjects.length) {
+          try { await sbSaveBook(book); } catch(e) {}
+          return;
+        }
+      }
+    } catch(e) {}
+  }
+
+  // Fall back to Google Books
+  let gb = null;
+  if (book.isbn13) gb = await gbFetchByISBN(book.isbn13);
+  if (!gb && book.title) {
+    const lastName = (book.author||'').split(' ').pop();
+    const q = lastName ? `intitle:${book.title.slice(0,40)} inauthor:${lastName}` : `intitle:${book.title.slice(0,40)}`;
+    gb = await gbFetchOne(q);
+  }
+  if (gb?.description && String(book.id) === detailBookId) {
+    const descEl = document.getElementById('detail-description');
+    if (descEl) descEl.textContent = gb.description;
+    book.description = gb.description;
+    try { await sbSaveBook(book); } catch(e) {}
+  } else if (String(book.id) === detailBookId) {
+    const descEl = document.getElementById('detail-description');
+    if (descEl) descEl.innerHTML = '<span style="color:var(--text-muted);font-style:italic">No description available.</span>';
+  }
+}
+
+function closeDetailModal() {
+  document.getElementById('detail-overlay').classList.remove('active');
+  detailBookId = null;
+}
+
+function detailToEdit() {
+  closeDetailModal();
+  openFixModal(detailBookId || '');
+}
+
+async function detailMarkRead() {
+  if (!detailBookId) return;
+  await quickMarkRead(null, detailBookId);
+  // Refresh status pill in modal
+  const status = getStatus(detailBookId);
+  const readBtn = document.getElementById('detail-read-btn');
+  if (readBtn) readBtn.style.display = 'none';
+  const metaRow = document.getElementById('detail-meta-row');
+  if (metaRow) {
+    const existing = metaRow.querySelector('#detail-status-pill');
+    if (!existing) {
+      const pill = document.createElement('span');
+      pill.id = 'detail-status-pill';
+      pill.style.cssText = `color:var(--s-read);border-color:var(--s-read)`;
+      pill.textContent = 'Read';
+      metaRow.appendChild(pill);
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1084,7 +1327,7 @@ async function fetchAllCovers() {
     }
     done++;
     btn.textContent = `⏹ Stop (${done}/${uncovered.length})`;
-    await new Promise(r => setTimeout(r, 100)); // OL is image loading, not a rate-limited API
+    await new Promise(r => setTimeout(r, 150)); // small gap between OL requests
   }
   batchEnrichActive = false;
   btn.textContent = `🎨 Fetch Covers`;
@@ -1102,8 +1345,31 @@ async function enrichBook(id, isbn, asin, title, author) {
     coverUrl = await fetchOLCover(isbn);
   }
 
-  // 2. Google Books — for metadata (description, pages, year) and cover fallback
-  //    Only query GB if we still need a cover or core metadata is missing
+  // 2. Open Library Books API — description, subjects, publisher (no rate limit)
+  if (isbn && isbn.length >= 10 && (!book.description || !book.yearPublished)) {
+    try {
+      const r = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&jscmd=data&format=json`);
+      const data = await r.json();
+      const entry = data[`ISBN:${isbn}`];
+      if (entry) {
+        const desc = typeof entry.description === 'string' ? entry.description
+          : entry.description?.value || '';
+        if (desc && !book.description) { book.description = desc; changed = true; }
+        if (entry.publish_date && !book.yearPublished) {
+          const yr = parseInt(entry.publish_date.slice(-4));
+          if (yr > 1000) { book.yearPublished = yr; changed = true; }
+        }
+        if (entry.publishers?.[0]?.name && !book.publisher) {
+          book.publisher = entry.publishers[0].name; changed = true;
+        }
+        if (entry.number_of_pages && !book.pages) { book.pages = entry.number_of_pages; changed = true; }
+        const subjects = (entry.subjects||[]).map(s=>typeof s==='string'?s:s.name).slice(0,6);
+        if (subjects.length && !book.genres?.length) { book.genres = subjects; changed = true; }
+      }
+    } catch(e) {}
+  }
+
+  // 3. Google Books — cover fallback + any remaining missing metadata (1,000 req/day cap)
   const needsMeta = !book.description || !book.pages || !book.yearPublished;
   const needsCover = !coverUrl;
   if ((needsCover || needsMeta) && (isbn || title)) {
@@ -1181,6 +1447,8 @@ function openFixModal(id) {
   document.getElementById('fix-book-title').textContent = book.title || '';
   document.getElementById('fix-book-author').textContent = book.author || '';
   document.getElementById('fix-title').value = book.title || '';
+  document.getElementById('fix-display-title').value = book.displayTitle || '';
+  document.getElementById('fix-sort-title').value = book.sortTitle || '';
   document.getElementById('fix-author').value = book.author || '';
   document.getElementById('fix-year').value = book.yearPublished || '';
   document.getElementById('fix-pages').value = book.pages || '';
@@ -1245,6 +1513,8 @@ async function saveFixModal() {
   msg.className='fix-status'; msg.textContent='Saving…';
 
   book.title       = document.getElementById('fix-title').value.trim() || book.title;
+  book.displayTitle = document.getElementById('fix-display-title').value.trim() || null;
+  book.sortTitle   = document.getElementById('fix-sort-title').value.trim() || null;
   book.author      = document.getElementById('fix-author').value.trim();
   book.yearPublished = parseInt(document.getElementById('fix-year').value)||book.yearPublished||null;
   book.pages       = parseInt(document.getElementById('fix-pages').value)||book.pages||null;
