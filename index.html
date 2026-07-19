@@ -255,6 +255,7 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     <span class="header-stats" id="header-stats"></span>
     <div class="header-btns">
       <button class="icon-btn" id="random-btn" onclick="pickRandom()">📖 What to Read?</button>
+      <button class="icon-btn" id="fetch-covers-btn" onclick="fetchAllCovers()">🎨 Fetch Covers</button>
       <button class="icon-btn" id="add-btn" onclick="openAddModal()">+ Add</button>
       <button class="icon-btn" id="import-btn" onclick="openImportModal()">⇑ Import</button>
       <button class="icon-btn" id="select-btn" onclick="enterSelectMode()">Select</button>
@@ -594,10 +595,24 @@ async function sbFetch(path, opts={}) {
   try { return JSON.parse(text); } catch { return null; }
 }
 
+async function sbFetchAll(path) {
+  // Paginate through Supabase results (default max is 1000 rows per request)
+  const PAGE = 1000;
+  let all = [], offset = 0;
+  while (true) {
+    const batch = await sbFetch(`${path}&limit=${PAGE}&offset=${offset}`);
+    if (!batch || !batch.length) break;
+    all = all.concat(batch);
+    if (batch.length < PAGE) break;
+    offset += PAGE;
+  }
+  return all;
+}
+
 async function loadAllBooks() {
   const [bRows, sRows] = await Promise.all([
-    sbFetch('books?select=id,data,updated_at&order=updated_at.desc&limit=5000'),
-    sbFetch('book_status?select=book_id,status&limit=5000'),
+    sbFetchAll('books?select=id,data,updated_at&order=updated_at.desc'),
+    sbFetchAll('book_status?select=book_id,status'),
   ]);
   statusMap.clear();
   (sRows||[]).forEach(r => statusMap.set(r.book_id, r.status));
@@ -756,6 +771,13 @@ function gateSubmit() {
 
 async function init() {
   showProgress('Loading SPINE…', 0);
+  // Hide write-only buttons in public mode
+  if (READ_ONLY) {
+    ['fetch-covers-btn','add-btn','import-btn','select-btn'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+  }
   try {
     await loadAllBooks();
     showProgress('Rendering…', 80);
@@ -980,32 +1002,72 @@ function cardClick(e, id) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// LAZY ENRICHMENT (Google Books covers + descriptions)
+// ENRICHMENT — rate-limited queue (150ms between requests)
 // ═══════════════════════════════════════════════════════════════
+let enrichQueue = [];
+let enrichRunning = false;
+let batchEnrichActive = false;
+
 function setupEnrichObserver() {
-  enrichObserver = new IntersectionObserver(async (entries) => {
-    for (const entry of entries) {
-      if (!entry.isIntersecting) continue;
+  enrichObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
       const el = entry.target;
       enrichObserver.unobserve(el);
       const id = el.dataset.id;
-      if (enrichPending.has(id)) continue;
+      if (enrichPending.has(id)) return;
       enrichPending.add(id);
-      const isbn = el.dataset.isbn;
-      const asin = el.dataset.asin;
-      const title = el.dataset.searchTitle;
-      const author = el.dataset.searchAuthor;
-      enrichBook(id, isbn, asin, title, author);
+      enrichQueue.push({
+        id, isbn: el.dataset.isbn, asin: el.dataset.asin,
+        title: el.dataset.searchTitle, author: el.dataset.searchAuthor
+      });
+      runEnrichQueue();
+    });
+  }, {rootMargin:'400px'});
+}
+
+async function runEnrichQueue() {
+  if (enrichRunning) return;
+  enrichRunning = true;
+  while (enrichQueue.length > 0) {
+    const job = enrichQueue.shift();
+    await enrichBook(job.id, job.isbn, job.asin, job.title, job.author);
+    await new Promise(r => setTimeout(r, 150)); // stay under Google Books rate limit
+  }
+  enrichRunning = false;
+}
+
+// "Fetch All Covers" — batch enriches every book without a cover
+let batchEnrichStopped = false;
+async function fetchAllCovers() {
+  if (batchEnrichActive) { batchEnrichStopped = true; return; }
+  batchEnrichActive = true; batchEnrichStopped = false;
+  const btn = document.getElementById('fetch-covers-btn');
+  const uncovered = books.filter(b => !b.cover && !b.customCover);
+  let done = 0;
+  btn.textContent = `⏹ Stop (0/${uncovered.length})`;
+  for (const book of uncovered) {
+    if (batchEnrichStopped) break;
+    if (!enrichPending.has(String(book.id))) {
+      enrichPending.add(String(book.id));
+      await enrichBook(String(book.id), book.isbn13||'', book.asin||'', book.title, book.author||'');
     }
-  }, {rootMargin:'200px'});
+    done++;
+    btn.textContent = `⏹ Stop (${done}/${uncovered.length})`;
+    await new Promise(r => setTimeout(r, 200));
+  }
+  batchEnrichActive = false;
+  btn.textContent = `🎨 Fetch Covers`;
 }
 
 async function enrichBook(id, isbn, asin, title, author) {
   let gb = null;
-  if (isbn) gb = await gbFetchByISBN(isbn);
-  if (!gb && asin) gb = await gbFetch(`isbn:${asin}`).then(r=>r[0]||null).catch(()=>null);
+  // ISBN-13 is most reliable
+  if (isbn && isbn.length >= 10) gb = await gbFetchByISBN(isbn);
+  // ASINs starting with B are NOT ISBNs — go straight to title+author search
   if (!gb && title) {
-    const q = author ? `intitle:${title.slice(0,40)} inauthor:${author.split(' ').pop()}` : `intitle:${title.slice(0,40)}`;
+    const lastName = (author||'').split(' ').pop();
+    const q = lastName ? `intitle:${title.slice(0,40)} inauthor:${lastName}` : `intitle:${title.slice(0,40)}`;
     gb = await gbFetchOne(q);
   }
   if (!gb) return;
@@ -1023,20 +1085,20 @@ async function enrichBook(id, isbn, asin, title, author) {
   if (gb.isbn13 && !book.isbn13) { book.isbn13 = gb.isbn13; changed = true; }
 
   if (changed) {
-    // Update DOM directly for immediate feedback
-    const cardEl = document.querySelector(`.book-card[data-id="${escId(id)}"]`);
-    if (cardEl && gb.cover) {
-      const wrap = cardEl.querySelector('.card-img-wrap');
-      const placeholder = wrap.querySelector('.book-cover-placeholder');
-      if (placeholder) {
-        const img = document.createElement('img');
-        img.className = 'book-cover';
-        img.src = gb.cover;
-        img.alt = book.title;
-        img.loading = 'lazy';
-        wrap.insertBefore(img, placeholder);
-        placeholder.remove();
-        cardEl.classList.remove('not-found-card');
+    // Swap placeholder for real cover in DOM immediately
+    if (gb.cover) {
+      const cardEl = document.querySelector(`.book-card[data-id="${escId(id)}"]`);
+      if (cardEl) {
+        const wrap = cardEl.querySelector('.card-img-wrap');
+        const placeholder = wrap?.querySelector('.book-cover-placeholder');
+        if (placeholder) {
+          const img = document.createElement('img');
+          img.className = 'book-cover'; img.src = gb.cover;
+          img.alt = book.title; img.loading = 'lazy';
+          wrap.insertBefore(img, placeholder);
+          placeholder.remove();
+          cardEl.classList.remove('not-found-card');
+        }
       }
     }
     try { await sbSaveBook(book); } catch(e) { console.warn('Enrich save failed:', e.message); }
