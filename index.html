@@ -106,7 +106,7 @@ label{display:block;font-size:.7rem;color:var(--text-dim);margin-bottom:5px;text
 .decade-wrap{position:relative;flex-shrink:0}
 #decade-btn{padding:5px 9px;font-size:.75rem;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--text-muted);cursor:pointer;font-family:inherit;white-space:nowrap}
 #decade-btn.has-selection{border-color:var(--accent);color:var(--accent)}
-#decade-popup{display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:8px 10px;z-index:200;min-width:160px;gap:6px;flex-direction:column}
+#decade-popup{display:none;position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:8px 10px;z-index:9999;min-width:160px;gap:6px;flex-direction:column;box-shadow:0 4px 16px rgba(0,0,0,.5)}
 #decade-popup.open{display:flex}
 .decade-opt{display:flex;align-items:center;gap:7px;font-size:.75rem;color:var(--text-muted);cursor:pointer;white-space:nowrap;padding:2px 0}
 .decade-opt input[type=checkbox]{width:13px;height:13px;accent-color:var(--accent);cursor:pointer;flex-shrink:0}
@@ -158,15 +158,15 @@ body.public-mode .card-fix-btn,body.public-mode .card-read-btn,body.public-mode 
 /* DETAIL MODAL */
 #detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;overflow-y:auto}
 #detail-overlay.active{display:flex;align-items:center;justify-content:center;padding:20px 12px}
-#detail-content{background:var(--surface);border:1px solid var(--border);border-radius:4px;width:100%;max-width:680px;padding:0;position:relative;overflow:hidden}
+#detail-content{background:var(--surface);border:1px solid var(--border);border-radius:4px;width:100%;max-width:1020px;padding:0;position:relative;overflow:hidden}
 #detail-body{display:flex;gap:0;align-items:flex-start}
-#detail-cover-col{flex-shrink:0;width:200px;background:var(--surface2)}
-#detail-cover-img{width:200px;display:block;aspect-ratio:2/3;object-fit:cover}
-#detail-cover-ph{width:200px;aspect-ratio:2/3;display:flex;align-items:center;justify-content:center;font-size:3.5rem;color:var(--text-dim);background:var(--surface2)}
-#detail-info{flex:1;padding:24px 24px 24px 20px;min-width:0}
-#detail-series{font-size:.68rem;color:var(--accent);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;opacity:.85}
-#detail-title{font-family:'DM Serif Display',serif;font-size:1.5rem;line-height:1.2;margin-bottom:4px;color:var(--text)}
-#detail-author{font-size:.88rem;color:var(--text-dim);margin-bottom:12px}
+#detail-cover-col{flex-shrink:0;width:300px;background:var(--surface2)}
+#detail-cover-img{width:300px;display:block;aspect-ratio:2/3;object-fit:cover}
+#detail-cover-ph{width:300px;aspect-ratio:2/3;display:flex;align-items:center;justify-content:center;font-size:5rem;color:var(--text-dim);background:var(--surface2)}
+#detail-info{flex:1;padding:32px 32px 28px 28px;min-width:0}
+#detail-series{font-size:.72rem;color:var(--accent);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;opacity:.85}
+#detail-title{font-family:'DM Serif Display',serif;font-size:2rem;line-height:1.2;margin-bottom:5px;color:var(--text)}
+#detail-author{font-size:.95rem;color:var(--text-dim);margin-bottom:16px}
 #detail-meta-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:14px}
 .detail-badge{font-size:.58rem;font-weight:700;letter-spacing:.1em;padding:2px 7px;border-radius:2px;text-transform:uppercase}
 #detail-status-pill{font-size:.68rem;font-weight:600;letter-spacing:.06em;padding:3px 9px;border-radius:3px;border:1px solid currentColor}
@@ -175,7 +175,7 @@ body.public-mode .card-fix-btn,body.public-mode .card-read-btn,body.public-mode 
 #detail-rating{display:flex;gap:2px;margin-bottom:14px}
 #detail-rating .star{font-size:1rem;color:var(--accent);opacity:.25}
 #detail-rating .star.lit{opacity:1}
-#detail-description{font-size:.82rem;line-height:1.6;color:var(--text-dim);margin-bottom:16px;max-height:220px;overflow-y:auto}
+#detail-description{font-size:.88rem;line-height:1.65;color:var(--text-dim);margin-bottom:18px;max-height:320px;overflow-y:auto}
 #detail-genres{font-size:.7rem;color:var(--text-muted);margin-bottom:16px}
 #detail-footer{display:flex;gap:8px;align-items:center}
 #detail-edit-btn{background:var(--accent);color:#000;border:none;border-radius:2px;padding:7px 16px;font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;font-family:inherit}
@@ -357,8 +357,8 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <option value="300-400">300–400</option>
         <option value="o400">400+</option>
       </select>
-      <select class="header-select" id="rating-filter-select" onchange="applyFilters()" style="max-width:68px">
-        <option value="">★</option>
+      <select class="header-select" id="rating-filter-select" onchange="applyFilters()" style="max-width:90px">
+        <option value="">Rating</option>
         <option value="5">5★</option>
         <option value="4">4★+</option>
         <option value="3">3★+</option>
@@ -800,6 +800,14 @@ function makeId(isbn13, asin) {
 }
 function getStatus(id) { return statusMap.get(String(id)) || 'unread'; }
 function sortTitle(t) { return (t||'').toLowerCase().replace(/^(the |a |an )/,''); }
+function authorSortKey(a) {
+  if (!a) return '';
+  const parts = a.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].toLowerCase();
+  const last = parts[parts.length - 1];
+  const rest = parts.slice(0, -1).join(' ');
+  return (last + ' ' + rest).toLowerCase();
+}
 
 function parsePageRange(val) {
   if (!val) return null;
@@ -953,9 +961,17 @@ function applyDecades() {
 
 function toggleDecadePopup(e) {
   e.stopPropagation();
-  document.getElementById('decade-popup').classList.toggle('open');
+  const popup = document.getElementById('decade-popup');
+  if (popup.classList.contains('open')) { popup.classList.remove('open'); return; }
+  // Position fixed relative to viewport so overflow:auto parent can't clip it
+  const rect = document.getElementById('decade-btn').getBoundingClientRect();
+  popup.style.top  = (rect.bottom + 4) + 'px';
+  popup.style.left = rect.left + 'px';
+  popup.classList.add('open');
 }
 
+// Stop clicks inside popup from propagating to the document close-handler
+document.getElementById('decade-popup').addEventListener('click', e => e.stopPropagation());
 document.addEventListener('click', () => document.getElementById('decade-popup').classList.remove('open'));
 
 function applyFilters() {
@@ -1009,7 +1025,7 @@ function applyFilters() {
   // Sort
   filteredBooks.sort((a,b) => {
     if (sortOrder==='title') return sortTitle(a.sortTitle || a.displayTitle || a.title).localeCompare(sortTitle(b.sortTitle || b.displayTitle || b.title));
-    if (sortOrder==='author') return (a.author||'').localeCompare(b.author||'');
+    if (sortOrder==='author') return authorSortKey(a.author).localeCompare(authorSortKey(b.author));
     if (sortOrder==='dateAdded') return (b.dateAdded||'').localeCompare(a.dateAdded||'');
     if (sortOrder==='dateRead') return (b.dateRead||'').localeCompare(a.dateRead||'');
     if (sortOrder==='rating') return (b.rating||0)-(a.rating||0);
