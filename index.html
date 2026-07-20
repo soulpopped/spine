@@ -306,6 +306,7 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       <button class="icon-btn" id="fetch-covers-btn" onclick="fetchAllCovers()">🎨 Fetch Covers</button>
       <button class="icon-btn" id="reenrich-btn" onclick="reEnrichMissing()">🔄 Re-enrich</button>
       <span id="cover-count" style="font-size:.62rem;color:var(--text-muted);letter-spacing:.06em;white-space:nowrap"></span>
+      <span id="desc-count" style="font-size:.62rem;color:var(--text-muted);letter-spacing:.06em;white-space:nowrap"></span>
       <button class="icon-btn" id="add-btn" onclick="openAddModal()">+ Add</button>
       <button class="icon-btn" id="import-btn" onclick="openImportModal()">⇑ Import</button>
       <button class="icon-btn" id="select-btn" onclick="enterSelectMode()">Select</button>
@@ -1208,7 +1209,9 @@ function updateStats() {
   pills.forEach(p => { if(labels[p.dataset.status]) p.textContent=labels[p.dataset.status]; });
   document.getElementById('header-stats').textContent = filteredBooks.length !== total ? `${filteredBooks.length} of ${total}` : '';
   const withCover = books.filter(b => b.cover || b.customCover).length;
-  document.getElementById('cover-count').textContent = `${withCover} / ${total} covers`;
+  const withDesc  = books.filter(b => b.description && b.description.length > 10).length;
+  document.getElementById('cover-count').textContent = `${withCover}/${total} covers`;
+  document.getElementById('desc-count').textContent  = `· ${withDesc}/${total} desc`;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2117,6 +2120,7 @@ async function addSelectedBook() {
     await sbSaveBook(book);
     books.unshift(book);
     st.textContent='✓ Added!';
+    sortOrder='dateAdded'; document.getElementById('sort-select').value='dateAdded';
     applyFilters(); updateStats();
     setTimeout(closeAddModal, 700);
   } catch(e) { st.textContent='⚠ '+e.message; }
