@@ -363,6 +363,7 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       </select>
       <select class="header-select" id="page-range-select" onchange="applyFilters()" style="max-width:80px">
         <option value="">Pages</option>
+        <option value="none">No data</option>
         <option value="u200">&lt;200</option>
         <option value="200-300">200–300</option>
         <option value="300-400">300–400</option>
@@ -771,9 +772,99 @@ function fetchOLCover(isbn13) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// GOOGLE BOOKS API — used for metadata (description, pages, etc.)
-// Hard-limited by Google to 1,000 req/day without an API key,
-// so we only fall back here when OL has no cover.
+// WIKIPEDIA — description fallback (free, no daily limit)
+// Searches Wikipedia and returns the intro paragraph for the
+// matching article. Validates the result mentions the author.
+// ═══════════════════════════════════════════════════════════════
+async function fetchWikiDescription(title, author) {
+  if (!title) return null;
+  try {
+    const lastName = (author||'').trim().split(/\s+/).pop() || '';
+    const searchQ = [cleanTitleForSearch(title), lastName, 'novel'].filter(Boolean).join(' ');
+    const sr = await fetch(
+      `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchQ)}&srlimit=3&format=json&origin=*`
+    );
+    const sd = await sr.json();
+    const hits = sd.query?.search || [];
+    for (const hit of hits) {
+      const r = await fetch(
+        `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(hit.title)}`
+      );
+      if (!r.ok) continue;
+      const data = await r.json();
+      if (data.type === 'disambiguation') continue;
+      const extract = (data.extract || '').trim();
+      if (extract.length < 80) continue;
+      const desc = (data.description || '').toLowerCase();
+      const lowerLast = lastName.toLowerCase();
+      // Must mention the author or description confirms it's a novel/book
+      if (lastName && !extract.toLowerCase().includes(lowerLast) && !desc.includes(lowerLast)) continue;
+      // Skip if it's clearly a film, TV show, or game adaptation
+      if (/\b(film|movie|television series|tv series|video game)\b/.test(desc)) continue;
+      return extract;
+    }
+    return null;
+  } catch { return null; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// OPEN LIBRARY SEARCH — primary Add source (no rate limit)
+// ═══════════════════════════════════════════════════════════════
+function parseOLSearchDoc(doc) {
+  const covId = doc.cover_i;
+  const isbn13 = (doc.isbn||[]).find(s=>s.length===13) || '';
+  const isbn10 = (doc.isbn||[]).find(s=>s.length===10) || '';
+  return {
+    title: doc.title || '',
+    author: (doc.author_name||[])[0] || '',
+    authors: doc.author_name || [],
+    description: '',
+    pages: doc.number_of_pages_median || null,
+    cover: covId ? `https://covers.openlibrary.org/b/id/${covId}-L.jpg` : '',
+    isbn13, isbn10,
+    publisher: (doc.publisher||[])[0] || '',
+    yearPublished: doc.first_publish_year || null,
+    genres: (doc.subject||[]).slice(0,6),
+    olKey: doc.key || '',
+  };
+}
+async function searchOL(query) {
+  try {
+    const params = new URLSearchParams({q:query, limit:'8',
+      fields:'key,title,author_name,cover_i,first_publish_year,number_of_pages_median,isbn,publisher,subject'});
+    const r = await fetch(`https://openlibrary.org/search.json?${params}`);
+    const data = await r.json();
+    return (data.docs||[]).map(parseOLSearchDoc);
+  } catch { return []; }
+}
+async function olFetchByISBN(isbn) {
+  try {
+    const r = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&jscmd=data&format=json`);
+    const data = await r.json();
+    const entry = data[`ISBN:${isbn}`];
+    if (!entry) return null;
+    const desc = typeof entry.description==='string' ? entry.description : entry.description?.value||'';
+    const covUrl = entry.cover?.large || entry.cover?.medium || entry.cover?.small || '';
+    const isbn13 = (entry.identifiers?.isbn_13||[])[0] || (isbn.length===13?isbn:'');
+    const isbn10 = (entry.identifiers?.isbn_10||[])[0] || (isbn.length===10?isbn:'');
+    return {
+      title: entry.title||'',
+      author: (entry.authors||[])[0]?.name||'',
+      authors: (entry.authors||[]).map(a=>a.name),
+      description: desc,
+      pages: entry.number_of_pages||null,
+      cover: covUrl,
+      isbn13, isbn10,
+      publisher: entry.publishers?.[0]?.name||'',
+      yearPublished: parseInt((entry.publish_date||'').slice(-4))||null,
+      genres: (entry.subjects||[]).map(s=>typeof s==='string'?s:s.name).slice(0,6),
+    };
+  } catch { return null; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GOOGLE BOOKS API — fallback when OL has no results
+// Hard-limited to 1,000 req/day without an API key.
 // ═══════════════════════════════════════════════════════════════
 async function gbFetch(query) {
   try {
@@ -861,6 +952,7 @@ function authorSortKey(a) {
 
 function parsePageRange(val) {
   if (!val) return null;
+  if (val==='none') return 'none';
   if (val==='u200') return [0,199];
   if (val==='200-300') return [200,300];
   if (val==='300-400') return [300,400];
@@ -1053,8 +1145,8 @@ function applyFilters() {
     if (authorQ && !(b.author||'').toLowerCase().includes(authorQ)) return false;
     // Pages (skip audio books for page filter)
     if (pageRange && !b.audioLength) {
-      const p = b.pages || 0;
-      if (p < pageRange[0] || p > pageRange[1]) return false;
+      if (pageRange === 'none') { if (b.pages) return false; }
+      else { const p = b.pages || 0; if (p < pageRange[0] || p > pageRange[1]) return false; }
     }
     // Rating
     if (minRating && (b.rating||0) < minRating) return false;
@@ -1501,7 +1593,13 @@ async function enrichBook(id, isbn, asin, title, author) {
     } catch(e) {}
   }
 
-  // 4. Google Books — last resort (1,000 req/day cap)
+  // 4. Wikipedia — description fallback (free, no daily limit)
+  if (!book.description && title) {
+    const wikiDesc = await fetchWikiDescription(title, author);
+    if (wikiDesc) { book.description = wikiDesc; changed = true; }
+  }
+
+  // 5. Google Books — last resort (1,000 req/day cap)
   const needsMeta = !book.description || !book.pages || !book.yearPublished;
   const needsCover = !coverUrl;
   if ((needsCover || needsMeta) && (isbn || title)) {
@@ -1733,6 +1831,12 @@ async function refetchFromOL() {
     } catch(e) {}
   }
 
+  // Wikipedia — description fallback if OL came up empty
+  if (!foundMeta.description && title) {
+    const wikiDesc = await fetchWikiDescription(title, author);
+    if (wikiDesc) foundMeta.description = wikiDesc;
+  }
+
   // Apply to form fields
   const applied = [];
   if (foundCover) { document.getElementById('fix-cover').value=foundCover; book.cover=foundCover; applied.push('cover'); }
@@ -1742,7 +1846,7 @@ async function refetchFromOL() {
   if (foundMeta.pages) { document.getElementById('fix-pages').value=foundMeta.pages; book.pages=foundMeta.pages; applied.push('pages'); }
   if (foundMeta.genres) { book.genres=foundMeta.genres; applied.push('genres'); }
 
-  if (!applied.length) { msg.className='fix-status err'; msg.textContent='Nothing found on Open Library.'; }
+  if (!applied.length) { msg.className='fix-status err'; msg.textContent='Nothing found on Open Library or Wikipedia.'; }
   else { msg.className='fix-status ok'; msg.textContent=`✓ Got ${applied.join(', ')} — click Save to apply.`; }
 }
 
@@ -1929,9 +2033,11 @@ async function searchGoogleBooks() {
   if (!q) return;
   const st = document.getElementById('gb-search-status');
   st.textContent = 'Searching…';
-  const results = await gbFetch(q);
+  let results = await searchOL(q);
+  let source = 'Open Library';
+  if (!results.length) { results = await gbFetch(q); source = 'Google Books'; }
   if (!results.length) { st.textContent='No results found.'; return; }
-  st.textContent = `${results.length} result${results.length===1?'':'s'}`;
+  st.textContent = `${results.length} result${results.length===1?'':'s'} via ${source}`;
   const container = document.getElementById('book-search-results');
   container.style.display='block';
   container.innerHTML = results.map((b,i) => `
@@ -2021,8 +2127,10 @@ async function lookupISBN() {
   if (!raw) return;
   const st = document.getElementById('isbn-status');
   st.textContent='Looking up…';
-  const gb = await gbFetchByISBN(raw);
-  if (!gb) { st.textContent='Not found. Try the Search tab.'; return; }
+  let book = await olFetchByISBN(raw);
+  if (!book) book = await gbFetchByISBN(raw);
+  if (!book) { st.textContent='Not found. Try the Search tab.'; return; }
+  const gb = book;
   isbnGBBook=gb;
   document.getElementById('isbn-result').innerHTML=`
     <div class="search-result selected" style="cursor:default">
