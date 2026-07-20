@@ -650,6 +650,7 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     <option value="COMIC">COMIC</option>
   </select>
   <button class="btn btn-accent" onclick="saveBulkEdit()" style="font-size:.68rem;padding:6px 11px">Apply</button>
+  <button class="btn" id="bulk-merge-btn" onclick="bulkMerge()" style="font-size:.68rem;padding:6px 11px;display:none">⇄ Merge 2</button>
   <button class="btn" onclick="bulkDelete()" style="font-size:.68rem;padding:6px 11px;border-color:#ef4444;color:#ef4444" id="bulk-delete-btn">🗑 Remove</button>
   <button class="btn" onclick="exitSelectMode()" style="font-size:.68rem;padding:6px 11px">Cancel</button>
 </div>
@@ -837,6 +838,17 @@ function makeId(isbn13, asin) {
 }
 function getStatus(id) { return statusMap.get(String(id)) || 'unread'; }
 function sortTitle(t) { return (t||'').toLowerCase().replace(/^(the |a |an )/,''); }
+// Strip subtitle noise for API search queries (e.g. ": A Novel", "(Book 1)", "[Illustrated]")
+function cleanTitleForSearch(t) {
+  if (!t) return '';
+  let s = t
+    .replace(/\s*\([^)]*(?:novel|memoir|story|thriller|mystery|nonfiction|narrative|book\s*\d|vol(?:ume)?\s*\d+|#\d+|illustrated|revised|updated|edition|series|chronicle|saga|trilogy|omnibus|duology)[^)]*\)/gi, '')
+    .replace(/\s*\([^,)]+,\s*#\d+[^)]*\)/gi, '')   // "Author, #3" series notation
+    .replace(/\s*\[[^\]]*\]/gi, '')                  // [Kindle Edition], [2023]
+    .replace(/\s*[:\-–—]\s*(?:a |an )?(?:novel|memoir|story|thriller|mystery|nonfiction|narrative|journey|true story|love story|history|biography|autobiography)\b.*/i, '')
+    .trim();
+  return s || t;
+}
 function authorSortKey(a) {
   if (!a) return '';
   const parts = a.trim().split(/\s+/);
@@ -1287,7 +1299,8 @@ async function fetchDescriptionForDetail(book) {
   if (book.isbn13) gb = await gbFetchByISBN(book.isbn13);
   if (!gb && book.title) {
     const lastName = (book.author||'').split(' ').pop();
-    const q = lastName ? `intitle:${book.title.slice(0,40)} inauthor:${lastName}` : `intitle:${book.title.slice(0,40)}`;
+    const cleanT = cleanTitleForSearch(book.title).slice(0,40);
+    const q = lastName ? `intitle:${cleanT} inauthor:${lastName}` : `intitle:${cleanT}`;
     gb = await gbFetchOne(q);
   }
   if (gb?.description && String(book.id) === detailBookId) {
@@ -1307,8 +1320,9 @@ function closeDetailModal() {
 }
 
 function detailToEdit() {
+  const id = detailBookId;
   closeDetailModal();
-  openFixModal(detailBookId || '');
+  openFixModal(id || '');
 }
 
 async function detailMarkRead() {
@@ -1452,7 +1466,7 @@ async function enrichBook(id, isbn, asin, title, author) {
   if ((!coverUrl || !book.description || !book.yearPublished || !book.pages) && title) {
     try {
       const lastName = (author||'').trim().split(/\s+/).pop() || '';
-      const params = new URLSearchParams({title: title.slice(0,60), limit:'1',
+      const params = new URLSearchParams({title: cleanTitleForSearch(title).slice(0,60), limit:'1',
         fields:'cover_i,key,first_publish_year,number_of_pages_median,subject'});
       if (lastName) params.set('author', lastName);
       const r = await fetch(`https://openlibrary.org/search.json?${params}`);
@@ -1492,7 +1506,8 @@ async function enrichBook(id, isbn, asin, title, author) {
     if (isbn && isbn.length >= 10) gb = await gbFetchByISBN(isbn);
     if (!gb && title) {
       const lastName = (author||'').split(' ').pop();
-      const q = lastName ? `intitle:${title.slice(0,40)} inauthor:${lastName}` : `intitle:${title.slice(0,40)}`;
+      const cleanT = cleanTitleForSearch(title).slice(0,40);
+      const q = lastName ? `intitle:${cleanT} inauthor:${lastName}` : `intitle:${cleanT}`;
       gb = await gbFetchOne(q);
     }
     if (gb) {
@@ -1688,7 +1703,7 @@ async function refetchFromOL() {
   if ((!foundCover || !foundMeta.description) && title) {
     try {
       const lastName = author.trim().split(/\s+/).pop()||'';
-      const params = new URLSearchParams({title:title.slice(0,60),limit:'1',fields:'cover_i,key,first_publish_year,number_of_pages_median,subject'});
+      const params = new URLSearchParams({title:cleanTitleForSearch(title).slice(0,60),limit:'1',fields:'cover_i,key,first_publish_year,number_of_pages_median,subject'});
       if (lastName) params.set('author', lastName);
       const r = await fetch(`https://openlibrary.org/search.json?${params}`);
       const data = await r.json();
@@ -1735,7 +1750,7 @@ async function refetchFromGB() {
   msg.className='fix-status'; msg.textContent='Fetching…';
   let gb = null;
   if (book.isbn13) gb = await gbFetchByISBN(book.isbn13);
-  if (!gb && book.title) gb = await gbFetchOne(`intitle:${book.title.slice(0,40)}`+(book.author?` inauthor:${book.author.split(' ').pop()}`:''));
+  if (!gb && book.title) gb = await gbFetchOne(`intitle:${cleanTitleForSearch(book.title).slice(0,40)}`+(book.author?` inauthor:${book.author.split(' ').pop()}`:''));
   if (!gb) { msg.className='fix-status err'; msg.textContent='Not found on Google Books.'; return; }
   if (gb.cover) { book.cover=gb.cover; document.getElementById('fix-cover').value=gb.cover; }
   if (gb.description) { book.description=gb.description; document.getElementById('fix-description').value=gb.description; }
@@ -1853,8 +1868,11 @@ async function confirmMerge() {
     books = books.filter(b=>String(b.id)!==mergeAbsorbId);
     statusMap.delete(mergeAbsorbId);
     enrichPending.delete(mergeAbsorbId);
+    const savedId = mergeKeepId;
+    const fixWasOpen = document.getElementById('fix-overlay').classList.contains('active');
     closeMergeModal();
-    openFixModal(mergeKeepId);   // reopen edit with merged data
+    if (fixWasOpen) openFixModal(savedId);
+    else exitSelectMode();
     applyFilters(); updateStats();
   } catch(e) {
     msg.className='fix-status err'; msg.textContent='⚠ '+e.message;
@@ -2383,6 +2401,7 @@ function toggleSelect(id) {
 function updateBulkCount() {
   document.getElementById('bulk-count').textContent=`${selectedIds.size} selected`;
   document.getElementById('bulk-all-btn').textContent = selectedIds.size===filteredBooks.length?'Deselect All':'Select All';
+  document.getElementById('bulk-merge-btn').style.display = selectedIds.size===2 ? '' : 'none';
 }
 function bulkToggleAll() {
   if (selectedIds.size===filteredBooks.length) {
@@ -2413,6 +2432,23 @@ async function saveBulkEdit() {
       body:JSON.stringify(toUpdate.map(b=>({book_id:String(b.id),status:statusVal,updated_at:now})))});
   }
   exitSelectMode(); applyFilters(); updateStats();
+}
+
+function bulkMerge() {
+  if (selectedIds.size !== 2) return;
+  const [idA, idB] = [...selectedIds];
+  const bookA = books.find(b=>String(b.id)===idA);
+  if (!bookA) return;
+  mergeKeepId = idA;
+  mergeAbsorbId = null;
+  document.getElementById('merge-keep-name').textContent = bookA.displayTitle || bookA.title || '';
+  document.getElementById('merge-search-input').value = '';
+  document.getElementById('merge-results').innerHTML = '';
+  document.getElementById('merge-status-msg').textContent = '';
+  document.getElementById('merge-preview').style.display = 'none';
+  document.getElementById('merge-overlay').classList.add('active');
+  // Auto-select the second book as the one to absorb
+  selectMergeAbsorb(idB);
 }
 
 async function bulkDelete() {
