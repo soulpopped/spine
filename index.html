@@ -189,8 +189,17 @@ body.public-mode .card-fix-btn,body.public-mode .card-read-btn,body.public-mode 
   #detail-info{padding:16px}
 }
 #fix-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;overflow-y:auto}
+#merge-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:400;overflow-y:auto}
+#merge-overlay.active{display:flex;align-items:center;justify-content:center;padding:20px 12px}
+#merge-content{background:var(--surface);border:1px solid var(--border);border-radius:4px;width:100%;max-width:520px;padding:24px;position:relative;max-height:calc(100vh - 48px);overflow-y:auto}
+.merge-result{padding:8px 10px;cursor:pointer;border-radius:3px;border:1px solid transparent;margin-bottom:3px}
+.merge-result:hover{background:var(--surface2);border-color:var(--border)}
+.merge-result .mr-title{font-size:.85rem;color:var(--text);font-weight:500}
+.merge-result .mr-meta{font-size:.72rem;color:var(--text-dim)}
 #fix-overlay.active{display:flex;align-items:center;justify-content:center;padding:20px 12px}
-#fix-content{background:var(--surface);border:1px solid var(--border);border-radius:4px;width:100%;max-width:560px;padding:24px;position:relative}
+#fix-content{background:var(--surface);border:1px solid var(--border);border-radius:4px;width:100%;max-width:860px;padding:24px;position:relative;max-height:calc(100vh - 48px);overflow-y:auto}
+.fix-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 24px}
+.fix-grid .form-group.full{grid-column:1/-1}
 .fix-title{font-family:'DM Serif Display',serif;font-size:1.1rem;margin-bottom:3px}
 .fix-sub{font-size:.7rem;color:var(--text-dim);margin-bottom:18px}
 .fix-section{font-size:.6rem;text-transform:uppercase;letter-spacing:.18em;color:var(--text-dim);margin:18px 0 8px;border-top:1px solid var(--border);padding-top:14px}
@@ -440,41 +449,68 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     </div>
 
     <div class="fix-section">Book Info</div>
-    <div class="form-group"><label>Title <span style="font-weight:400;color:var(--text-dim)">(canonical)</span></label><input type="text" id="fix-title"></div>
-    <div class="form-group"><label>Display Title <span style="font-weight:400;color:var(--text-dim)">(shown in grid &amp; detail — leave blank to use Title)</span></label><input type="text" id="fix-display-title" placeholder="e.g. Anansi Boys: A Novel"></div>
-    <div class="form-group"><label>Sort Title <span style="font-weight:400;color:var(--text-dim)">(invisible — alphabetical order only)</span></label><input type="text" id="fix-sort-title" placeholder="e.g. Hitchhiker, Lord of the Rings"></div>
-    <div class="form-group"><label>Author</label><input type="text" id="fix-author"></div>
-    <div class="fix-row">
+    <div class="fix-grid">
+      <div class="form-group full"><label>Title <span style="font-weight:400;color:var(--text-dim)">(canonical)</span></label><input type="text" id="fix-title"></div>
+      <div class="form-group full"><label>Display Title <span style="font-weight:400;color:var(--text-dim)">(shown in grid &amp; detail — leave blank to use Title)</span></label><input type="text" id="fix-display-title" placeholder="e.g. Anansi Boys: A Novel"></div>
+      <div class="form-group full"><label>Sort Title <span style="font-weight:400;color:var(--text-dim)">(invisible — alphabetical order only)</span></label><input type="text" id="fix-sort-title" placeholder="e.g. Hitchhiker, Lord of the Rings"></div>
+      <div class="form-group"><label>Author</label><input type="text" id="fix-author"></div>
+      <div class="form-group"><label>Publisher</label><input type="text" id="fix-publisher"></div>
       <div class="form-group"><label>Year Published</label><input type="number" id="fix-year" min="1000" max="2099"></div>
       <div class="form-group"><label>Pages</label><input type="number" id="fix-pages" min="1"></div>
-    </div>
-    <div class="fix-row">
       <div class="form-group"><label>Date Read</label><input type="text" id="fix-date-read" placeholder="YYYY-MM-DD"></div>
       <div class="form-group"><label>ISBN-13</label><input type="text" id="fix-isbn"></div>
-    </div>
-    <div class="form-group"><label>My Rating</label>
-      <div class="star-row" id="fix-stars">
-        <button class="star-btn" data-val="1" onclick="setFixRating(1)">★</button>
-        <button class="star-btn" data-val="2" onclick="setFixRating(2)">★</button>
-        <button class="star-btn" data-val="3" onclick="setFixRating(3)">★</button>
-        <button class="star-btn" data-val="4" onclick="setFixRating(4)">★</button>
-        <button class="star-btn" data-val="5" onclick="setFixRating(5)">★</button>
-        <button class="btn" onclick="setFixRating(0)" style="font-size:.65rem;padding:3px 8px;margin-left:6px">Clear</button>
+      <div class="form-group"><label>Series</label><input type="text" id="fix-series" placeholder="e.g. Hitchhiker's Guide"></div>
+      <div class="form-group"><label>Series Position</label><input type="number" id="fix-series-pos" min="1" step="0.5"></div>
+      <div class="form-group full"><label>My Rating</label>
+        <div class="star-row" id="fix-stars">
+          <button class="star-btn" data-val="1" onclick="setFixRating(1)">★</button>
+          <button class="star-btn" data-val="2" onclick="setFixRating(2)">★</button>
+          <button class="star-btn" data-val="3" onclick="setFixRating(3)">★</button>
+          <button class="star-btn" data-val="4" onclick="setFixRating(4)">★</button>
+          <button class="star-btn" data-val="5" onclick="setFixRating(5)">★</button>
+          <button class="btn" onclick="setFixRating(0)" style="font-size:.65rem;padding:3px 8px;margin-left:6px">Clear</button>
+        </div>
       </div>
+      <div class="form-group full"><label>Description</label><textarea id="fix-description" rows="4" style="resize:vertical"></textarea></div>
+      <div class="form-group full"><label>Custom Cover URL</label><input type="url" id="fix-cover"></div>
     </div>
-    <div class="form-group"><label>Series</label><input type="text" id="fix-series" placeholder="e.g. Hitchhiker's Guide"></div>
-    <div class="form-group"><label>Series Position</label><input type="number" id="fix-series-pos" min="1" step="0.5"></div>
-    <div class="form-group"><label>Publisher</label><input type="text" id="fix-publisher"></div>
-    <div class="form-group"><label>Description</label><textarea id="fix-description" rows="4" style="resize:vertical"></textarea></div>
-    <div class="form-group"><label>Custom Cover URL</label><input type="url" id="fix-cover"></div>
 
     <div class="fix-section">Actions</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn btn-accent" onclick="saveFixModal()">Save Changes</button>
+      <button class="btn" onclick="refetchFromOL()">↺ Re-fetch from Open Library</button>
       <button class="btn" onclick="refetchFromGB()">↺ Re-fetch from Google Books</button>
+      <button class="btn" onclick="openMergeModal()">⇄ Merge with…</button>
       <button class="btn btn-danger" onclick="deleteBook()">Delete Book</button>
     </div>
     <div class="fix-status" id="fix-status-msg"></div>
+  </div>
+</div>
+
+<!-- MERGE MODAL -->
+<div id="merge-overlay" onclick="if(event.target===this)closeMergeModal()">
+  <div id="merge-content">
+    <button class="modal-close" onclick="closeMergeModal()">✕</button>
+    <div class="fix-title">Merge Books</div>
+    <div style="font-size:.8rem;color:var(--text-dim);margin-bottom:14px">
+      Keeping: <strong id="merge-keep-name" style="color:var(--text)"></strong><br>
+      Search for the duplicate to absorb data from, then delete:
+    </div>
+    <input type="text" id="merge-search-input" placeholder="Type title or author…"
+           oninput="searchMergeBooks()" autocomplete="off"
+           style="width:100%;box-sizing:border-box;margin-bottom:8px">
+    <div id="merge-results" style="max-height:280px;overflow-y:auto;margin-bottom:10px"></div>
+    <div id="merge-preview" style="display:none">
+      <div style="border:1px solid var(--border);border-radius:3px;padding:12px;margin-bottom:12px;font-size:.8rem;background:var(--surface2)">
+        <div style="font-weight:600;margin-bottom:6px;color:var(--text)">What will happen:</div>
+        <div id="merge-preview-text" style="color:var(--text-dim);line-height:1.8"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-accent" onclick="confirmMerge()">Merge &amp; Delete Duplicate</button>
+        <button class="btn" onclick="clearMergeSelection()">Pick Different Book</button>
+      </div>
+    </div>
+    <div class="fix-status" id="merge-status-msg"></div>
   </div>
 </div>
 
@@ -1619,6 +1655,79 @@ async function saveFixModal() {
   } catch(e) { msg.className='fix-status err'; msg.textContent='⚠ '+e.message; }
 }
 
+async function refetchFromOL() {
+  const book = books.find(b=>String(b.id)===fixTargetId);
+  if (!book) return;
+  const msg = document.getElementById('fix-status-msg');
+  msg.className='fix-status'; msg.textContent='Fetching from Open Library…';
+  let foundCover=null, foundMeta={};
+  const isbn = document.getElementById('fix-isbn').value.trim() || book.isbn13 || '';
+  const title = document.getElementById('fix-title').value.trim() || book.title || '';
+  const author = document.getElementById('fix-author').value.trim() || book.author || '';
+
+  // Try ISBN first
+  if (isbn && isbn.length >= 10) {
+    const cv = await fetchOLCover(isbn);
+    if (cv) foundCover = cv;
+    try {
+      const r = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&jscmd=data&format=json`);
+      const data = await r.json();
+      const entry = data[`ISBN:${isbn}`];
+      if (entry) {
+        const desc = typeof entry.description==='string' ? entry.description : entry.description?.value||'';
+        if (desc) foundMeta.description = desc;
+        if (entry.publish_date) { const yr=parseInt(entry.publish_date.slice(-4)); if(yr>1000) foundMeta.yearPublished=yr; }
+        if (entry.publishers?.[0]?.name) foundMeta.publisher = entry.publishers[0].name;
+        if (entry.number_of_pages) foundMeta.pages = entry.number_of_pages;
+        if (entry.subjects?.length) foundMeta.genres = entry.subjects.map(s=>typeof s==='string'?s:s.name).slice(0,6);
+      }
+    } catch(e) {}
+  }
+
+  // Fall back to OL search by title+author
+  if ((!foundCover || !foundMeta.description) && title) {
+    try {
+      const lastName = author.trim().split(/\s+/).pop()||'';
+      const params = new URLSearchParams({title:title.slice(0,60),limit:'1',fields:'cover_i,key,first_publish_year,number_of_pages_median,subject'});
+      if (lastName) params.set('author', lastName);
+      const r = await fetch(`https://openlibrary.org/search.json?${params}`);
+      const data = await r.json();
+      const doc = data.docs?.[0];
+      if (doc) {
+        if (!foundCover && doc.cover_i) {
+          const url = `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`;
+          foundCover = await new Promise(resolve => {
+            const img=new Image(); img.onload=()=>resolve(img.naturalWidth>2?url:null); img.onerror=()=>resolve(null); img.src=url;
+          });
+        }
+        if (!foundMeta.yearPublished && doc.first_publish_year) foundMeta.yearPublished = doc.first_publish_year;
+        if (!foundMeta.pages && doc.number_of_pages_median) foundMeta.pages = doc.number_of_pages_median;
+        if (!foundMeta.genres && doc.subject?.length) foundMeta.genres = doc.subject.slice(0,6);
+        if (!foundMeta.description && doc.key) {
+          try {
+            const wr = await fetch(`https://openlibrary.org${doc.key}.json`);
+            const work = await wr.json();
+            const desc = typeof work.description==='string' ? work.description : work.description?.value||'';
+            if (desc) foundMeta.description = desc;
+          } catch(e) {}
+        }
+      }
+    } catch(e) {}
+  }
+
+  // Apply to form fields
+  const applied = [];
+  if (foundCover) { document.getElementById('fix-cover').value=foundCover; book.cover=foundCover; applied.push('cover'); }
+  if (foundMeta.description) { document.getElementById('fix-description').value=foundMeta.description; book.description=foundMeta.description; applied.push('description'); }
+  if (foundMeta.yearPublished) { document.getElementById('fix-year').value=foundMeta.yearPublished; book.yearPublished=foundMeta.yearPublished; applied.push('year'); }
+  if (foundMeta.publisher) { document.getElementById('fix-publisher').value=foundMeta.publisher; book.publisher=foundMeta.publisher; applied.push('publisher'); }
+  if (foundMeta.pages) { document.getElementById('fix-pages').value=foundMeta.pages; book.pages=foundMeta.pages; applied.push('pages'); }
+  if (foundMeta.genres) { book.genres=foundMeta.genres; applied.push('genres'); }
+
+  if (!applied.length) { msg.className='fix-status err'; msg.textContent='Nothing found on Open Library.'; }
+  else { msg.className='fix-status ok'; msg.textContent=`✓ Got ${applied.join(', ')} — click Save to apply.`; }
+}
+
 async function refetchFromGB() {
   const book = books.find(b=>String(b.id)===fixTargetId);
   if (!book) return;
@@ -1635,6 +1744,121 @@ async function refetchFromGB() {
   if (gb.pages) { book.pages=gb.pages; document.getElementById('fix-pages').value=gb.pages; }
   if (gb.isbn13&&!book.isbn13) { book.isbn13=gb.isbn13; document.getElementById('fix-isbn').value=gb.isbn13; }
   msg.className='fix-status ok'; msg.textContent='✓ Fetched — click Save to apply.';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MERGE MODAL
+// ═══════════════════════════════════════════════════════════════
+let mergeKeepId = null;
+let mergeAbsorbId = null;
+
+function openMergeModal() {
+  mergeKeepId = fixTargetId;
+  mergeAbsorbId = null;
+  const keep = books.find(b=>String(b.id)===mergeKeepId);
+  document.getElementById('merge-keep-name').textContent = keep?.displayTitle || keep?.title || '';
+  document.getElementById('merge-search-input').value = '';
+  document.getElementById('merge-results').innerHTML = '';
+  document.getElementById('merge-preview').style.display = 'none';
+  document.getElementById('merge-status-msg').textContent = '';
+  document.getElementById('merge-overlay').classList.add('active');
+}
+
+function closeMergeModal() {
+  document.getElementById('merge-overlay').classList.remove('active');
+  mergeKeepId = null; mergeAbsorbId = null;
+}
+
+function searchMergeBooks() {
+  const q = document.getElementById('merge-search-input').value.toLowerCase().trim();
+  const container = document.getElementById('merge-results');
+  if (!q) { container.innerHTML = ''; return; }
+  const results = books.filter(b =>
+    String(b.id) !== mergeKeepId &&
+    ((b.displayTitle||b.title||'').toLowerCase().includes(q) || (b.author||'').toLowerCase().includes(q))
+  ).slice(0, 12);
+  if (!results.length) {
+    container.innerHTML = '<div style="font-size:.78rem;color:var(--text-muted);padding:6px 2px">No books found.</div>';
+    return;
+  }
+  container.innerHTML = results.map(b => `
+    <div class="merge-result" onclick="selectMergeAbsorb('${escId(String(b.id))}')">
+      <div class="mr-title">${esc(b.displayTitle||b.title)}</div>
+      <div class="mr-meta">${esc(b.author||'')}${b.yearPublished?' · '+b.yearPublished:''}${b.isbn13?' · '+b.isbn13:''}</div>
+    </div>`).join('');
+}
+
+function clearMergeSelection() {
+  mergeAbsorbId = null;
+  document.getElementById('merge-preview').style.display = 'none';
+  document.getElementById('merge-search-input').value = '';
+  document.getElementById('merge-results').innerHTML = '';
+}
+
+function selectMergeAbsorb(id) {
+  mergeAbsorbId = id;
+  const keep   = books.find(b=>String(b.id)===mergeKeepId);
+  const absorb = books.find(b=>String(b.id)===mergeAbsorbId);
+  if (!keep || !absorb) return;
+
+  const lines = [];
+  const fields = [
+    ['cover','Cover image'],['description','Description'],['yearPublished','Year published'],
+    ['pages','Page count'],['publisher','Publisher'],['isbn13','ISBN-13'],
+    ['series','Series'],['seriesPosition','Series #'],['rating','Rating'],['dateRead','Date read']
+  ];
+  fields.forEach(([f, label]) => { if (!keep[f] && absorb[f]) lines.push(`• ${label}: will fill in from duplicate`); });
+
+  const newFmts = (absorb.formats||[]).filter(f=>!(keep.formats||[]).includes(f));
+  if (newFmts.length) lines.push(`• Formats: will add ${newFmts.map(f=>f==='PHYS'?'BOOK':f).join(', ')}`);
+
+  const rank = {read:4,reread:3,reading:2,unread:1};
+  const ks = statusMap.get(mergeKeepId)||'unread', as = statusMap.get(mergeAbsorbId)||'unread';
+  if ((rank[as]||1) > (rank[ks]||1)) lines.push(`• Status: will update to "${as}"`);
+
+  if (!lines.length) lines.push('No new data to absorb — will simply remove the duplicate.');
+  lines.push(`<br><em style="color:var(--accent)">"${esc(absorb.displayTitle||absorb.title)}" will be permanently deleted.</em>`);
+
+  document.getElementById('merge-results').innerHTML = '';
+  document.getElementById('merge-preview-text').innerHTML = lines.join('<br>');
+  document.getElementById('merge-preview').style.display = 'block';
+}
+
+async function confirmMerge() {
+  const keep   = books.find(b=>String(b.id)===mergeKeepId);
+  const absorb = books.find(b=>String(b.id)===mergeAbsorbId);
+  if (!keep || !absorb) return;
+  const msg = document.getElementById('merge-status-msg');
+  msg.className='fix-status'; msg.textContent='Merging…';
+
+  // Fill missing fields
+  ['description','yearPublished','pages','publisher','isbn13','asin','cover',
+   'customCover','series','seriesPosition','displayTitle','sortTitle','genres','dateRead','rating']
+    .forEach(f => { if (!keep[f] && absorb[f]) keep[f] = absorb[f]; });
+
+  // Union formats
+  keep.formats = [...new Set([...(keep.formats||[]), ...(absorb.formats||[])])];
+
+  // Better status wins
+  const rank = {read:4,reread:3,reading:2,unread:1};
+  const ks = statusMap.get(mergeKeepId)||'unread', as = statusMap.get(mergeAbsorbId)||'unread';
+  if ((rank[as]||1) > (rank[ks]||1)) {
+    statusMap.set(mergeKeepId, as);
+    await sbSetStatus(mergeKeepId, as).catch(()=>{});
+  }
+
+  try {
+    await sbSaveBook(keep);
+    await sbDeleteBook(mergeAbsorbId);
+    books = books.filter(b=>String(b.id)!==mergeAbsorbId);
+    statusMap.delete(mergeAbsorbId);
+    enrichPending.delete(mergeAbsorbId);
+    closeMergeModal();
+    openFixModal(mergeKeepId);   // reopen edit with merged data
+    applyFilters(); updateStats();
+  } catch(e) {
+    msg.className='fix-status err'; msg.textContent='⚠ '+e.message;
+  }
 }
 
 async function deleteBook() {
@@ -2212,6 +2436,7 @@ async function bulkDelete() {
 // ═══════════════════════════════════════════════════════════════
 document.addEventListener('keydown', e => {
   if (e.key==='Escape') {
+    if (document.getElementById('merge-overlay').classList.contains('active')) { closeMergeModal(); return; }
     if (document.getElementById('detail-overlay').classList.contains('active')) { closeDetailModal(); return; }
     if (document.getElementById('fix-overlay').classList.contains('active')) { closeFixModal(); return; }
     if (document.getElementById('add-overlay').classList.contains('active')) { closeAddModal(); return; }
