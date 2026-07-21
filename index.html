@@ -437,6 +437,10 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     <button class="modal-close" onclick="closeFixModal()">✕</button>
     <div class="fix-title" id="fix-book-title">Edit Book</div>
     <div class="fix-sub" id="fix-book-author"></div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
+      <button class="btn btn-accent" onclick="saveFixModal()">Save Changes</button>
+      <div class="fix-status" id="fix-status-msg-top" style="margin:0"></div>
+    </div>
 
     <div class="fix-section">Formats</div>
     <div class="format-chips" id="fix-format-chips">
@@ -491,9 +495,6 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     <div class="fix-section">Actions</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn btn-accent" onclick="saveFixModal()">Save Changes</button>
-      <button class="btn" onclick="refetchFromOL()">↺ Re-fetch from Open Library</button>
-      <button class="btn" onclick="refetchFromGB()">↺ Re-fetch from Google Books</button>
-      <button class="btn" onclick="openMergeModal()">⇄ Merge with…</button>
       <button class="btn btn-danger" onclick="deleteBook()">Delete Book</button>
     </div>
     <div class="fix-status" id="fix-status-msg"></div>
@@ -1802,7 +1803,9 @@ async function saveFixModal() {
   if (idx<0) return;
   const book = books[idx];
   const msg = document.getElementById('fix-status-msg');
-  msg.className='fix-status'; msg.textContent='Saving…';
+  const msgTop = document.getElementById('fix-status-msg-top');
+  const setMsg = (text, cls='fix-status') => { msg.className=cls; msg.textContent=text; if(msgTop){msgTop.className=cls;msgTop.textContent=text;} };
+  setMsg('Saving…');
 
   book.title       = document.getElementById('fix-title').value.trim() || book.title;
   book.displayTitle = document.getElementById('fix-display-title').value.trim() || null;
@@ -1827,10 +1830,10 @@ async function saveFixModal() {
     await sbSaveBook(book);
     await sbSetStatus(fixTargetId, fixStatusVal);
     statusMap.set(fixTargetId, fixStatusVal);
-    msg.className='fix-status ok'; msg.textContent='✓ Saved';
+    setMsg('✓ Saved', 'fix-status ok');
     buildYearReadOptions(); applyFilters();
     setTimeout(closeFixModal, 500);
-  } catch(e) { msg.className='fix-status err'; msg.textContent='⚠ '+e.message; }
+  } catch(e) { setMsg('⚠ '+e.message, 'fix-status err'); }
 }
 
 async function refetchFromOL() {
