@@ -21,7 +21,7 @@
   --accent:#e8c87a;--accent-dim:rgba(232,200,122,.12);
   --danger:#c0392b;
   --s-reading:#e8c87a;--s-read:#60a5fa;--s-reread:#c084fc;
-  --header-height:118px;--safe-top:env(safe-area-inset-top,0px);
+  --header-height:90px;--safe-top:env(safe-area-inset-top,0px);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;-webkit-font-smoothing:antialiased}
@@ -77,10 +77,9 @@ label{display:block;font-size:.7rem;color:var(--text-dim);margin-bottom:5px;text
 .header-btns{display:flex;gap:6px;align-items:center}
 .icon-btn{background:none;border:1px solid var(--border);border-radius:2px;color:var(--text-muted);cursor:pointer;padding:7px 14px;font-size:.82rem;transition:all .15s;white-space:nowrap;font-family:inherit}
 .icon-btn:hover{border-color:var(--text-muted);color:var(--text)}
-/* header-row2 = two stacked sub-rows */
-.header-row2{display:flex;flex-direction:column;gap:6px}
-.header-row2-pills{display:flex;gap:4px;align-items:center;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.header-row2-pills::-webkit-scrollbar{display:none}
+/* header-row2 = single scrollable filter strip */
+.header-row2{display:flex;gap:5px;align-items:center;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.header-row2::-webkit-scrollbar{display:none}
 .header-select{padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--text-muted);font-family:inherit;font-size:.75rem;outline:none;cursor:pointer;flex-shrink:0}
 /* STATUS PILLS */
 .status-pills{display:flex;gap:4px;align-items:center;flex-wrap:nowrap}
@@ -91,9 +90,7 @@ label{display:block;font-size:.7rem;color:var(--text-dim);margin-bottom:5px;text
 .status-pill[data-status="read"].active{border-color:var(--s-read);color:var(--s-read);background:rgba(96,165,250,.12)}
 .status-pill[data-status="reread"].active{border-color:var(--s-reread);color:var(--s-reread);background:rgba(192,132,252,.12)}
 
-/* FILTER STRIP */
-#filter-strip{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-#filter-strip::-webkit-scrollbar{display:none}
+/* FILTER STRIP — now merged into .header-row2 */
 .fmt-toggle{padding:4px 9px;border:1px solid var(--border);border-radius:2px;font-size:.68rem;letter-spacing:.06em;font-weight:700;cursor:pointer;background:none;font-family:inherit;transition:all .15s;flex-shrink:0;white-space:nowrap;color:var(--text-dim)}
 .fmt-toggle:hover{border-color:var(--text-muted)}
 .fmt-toggle.active-kindle{background:rgba(255,153,0,.15);border-color:#ff9900;color:#ff9900}
@@ -130,6 +127,8 @@ label{display:block;font-size:.7rem;color:var(--text-dim);margin-bottom:5px;text
 .card-read-btn{position:absolute;bottom:0;left:0;right:0;display:none;background:rgba(0,0,0,.82);border:none;border-top:1px solid rgba(255,255,255,.12);color:var(--s-read);font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:inherit;padding:6px;transition:background .15s}
 .book-card:hover .card-read-btn{display:block}
 .card-read-btn:hover{background:rgba(96,165,250,.18)}
+.card-read-btn.reading-btn{color:var(--s-reading)}
+.card-read-btn.reading-btn:hover{background:rgba(232,200,122,.18)}
 /* status icon (replaces old dot) */
 .status-dot{position:absolute;top:5px;right:5px;font-size:.6rem;font-weight:700;letter-spacing:.02em;padding:2px 5px;border-radius:3px;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.55);font-family:inherit}
 .status-dot.reading{background:var(--s-reading);color:#1a1108}
@@ -280,7 +279,6 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
 
 @media(max-width:600px){
   #book-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:9px}
-  .header-row2{flex-wrap:nowrap}
 }
 </style>
 </head>
@@ -319,91 +317,85 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       <button class="icon-btn" id="select-btn" onclick="enterSelectMode()">Select</button>
     </div>
   </div>
-  <div class="header-row2">
-    <!-- Status pills row -->
-    <div class="header-row2-pills">
-      <div class="status-pills">
-        <button class="status-pill active" data-status="all" onclick="setStatusFilter('all',this)">All</button>
-        <button class="status-pill" data-status="unread" onclick="setStatusFilter('unread',this)">Unread</button>
-        <button class="status-pill" data-status="reading" onclick="setStatusFilter('reading',this)">Reading</button>
-        <button class="status-pill" data-status="read" onclick="setStatusFilter('read',this)">Read</button>
-        <button class="status-pill" data-status="reread" onclick="setStatusFilter('reread',this)">To Re-read</button>
-        <select class="header-select" id="year-read-filter" onchange="applyFilters()" style="display:none;width:76px">
-          <option value="">Year</option>
-        </select>
-      </div>
-      <div style="flex:1"></div>
-      <select class="header-select" id="sort-select" onchange="sortOrder=this.value;applyFilters()" style="max-width:110px">
-        <option value="title">Title A–Z</option>
-        <option value="author">Author A–Z</option>
-        <option value="dateAdded">Date Added</option>
-        <option value="dateRead">Date Read</option>
-        <option value="rating">My Rating</option>
-        <option value="pages">Page Count</option>
+  <!-- Single combined filter row -->
+  <div class="header-row2" id="filter-strip">
+    <div class="status-pills">
+      <button class="status-pill active" data-status="all" onclick="setStatusFilter('all',this)">All</button>
+      <button class="status-pill" data-status="unread" onclick="setStatusFilter('unread',this)">Unread</button>
+      <button class="status-pill" data-status="reading" onclick="setStatusFilter('reading',this)">Reading</button>
+      <button class="status-pill" data-status="read" onclick="setStatusFilter('read',this)">Read</button>
+      <button class="status-pill" data-status="reread" onclick="setStatusFilter('reread',this)">To Re-read</button>
+      <select class="header-select" id="year-read-filter" onchange="applyFilters()" style="display:none;width:76px">
+        <option value="">Year</option>
       </select>
     </div>
-    <!-- Filter strip row -->
-    <div id="filter-strip">
-      <button class="fmt-toggle" data-fmt="KINDLE" onclick="toggleFormatFilter('KINDLE',this)">KINDLE</button>
-      <button class="fmt-toggle" data-fmt="BOOK" onclick="toggleFormatFilter('BOOK',this)">BOOK</button>
-      <button class="fmt-toggle" data-fmt="AUDIO" onclick="toggleFormatFilter('AUDIO',this)">AUDIO</button>
-      <button class="fmt-toggle" data-fmt="COMIC" onclick="toggleFormatFilter('COMIC',this)">COMIC</button>
-      <div class="filter-sep"></div>
-      <button class="fiction-pill" id="fiction-pill-fiction" onclick="toggleFictionFilter('fiction',this)">Fiction</button>
-      <button class="fiction-pill" id="fiction-pill-nonfiction" onclick="toggleFictionFilter('nonfiction',this)">Non-Fiction</button>
-      <button class="fiction-pill" id="fiction-pill-nodata" onclick="toggleFictionFilter('nodata',this)">No Data</button>
-      <div class="filter-sep"></div>
-      <input type="text" id="title-search" class="header-select" placeholder="Title…" oninput="applyFilters()" style="width:120px;padding:5px 8px;font-size:.75rem">
-      <div class="filter-sep"></div>
-      <input type="text" id="author-search" class="header-select" placeholder="Author…" oninput="applyFilters()" style="width:110px;padding:5px 8px;font-size:.75rem">
-      <div class="filter-sep"></div>
-      <!-- genre hidden — values stored but filter deprioritised -->
-      <select class="header-select" id="genre-filter-select" onchange="applyFilters()" style="display:none">
-        <option value="">Genre</option>
-        <option value="Mystery, Thriller &amp; Suspense">Mystery &amp; Thriller</option>
-        <option value="Science Fiction &amp; Fantasy">Sci-Fi &amp; Fantasy</option>
-        <option value="Biographies &amp; Memoirs">Biography &amp; Memoir</option>
-        <option value="Humor &amp; Entertainment">Humor</option>
-        <option value="Politics &amp; Social Sciences">Politics &amp; Society</option>
-        <option value="Romance">Romance</option>
-        <option value="History">History</option>
-        <option value="Computers &amp; Technology">Tech</option>
-        <option value="Sports &amp; Outdoors">Sports</option>
-        <option value="Science &amp; Math">Science</option>
-        <option value="Self-Help">Self-Help</option>
-        <option value="Business &amp; Money">Business</option>
-      </select>
-      <select class="header-select" id="page-range-select" onchange="applyFilters()" style="max-width:80px">
-        <option value="">Pages</option>
-        <option value="none">No data</option>
-        <option value="u200">&lt;200</option>
-        <option value="200-300">200–300</option>
-        <option value="300-400">300–400</option>
-        <option value="o400">400+</option>
-      </select>
-      <select class="header-select" id="rating-filter-select" onchange="applyFilters()" style="max-width:90px">
-        <option value="">Rating</option>
-        <option value="5">★★★★★</option>
-        <option value="4">★★★★+</option>
-        <option value="3">★★★+</option>
-      </select>
-      <div class="decade-wrap">
-        <button id="decade-btn" onclick="toggleDecadePopup(event)">Decade ▾</button>
-        <div id="decade-popup">
-          <div class="decade-opt"><input type="checkbox" value="1920" onchange="applyDecades()"><span>1920s</span></div>
-          <div class="decade-opt"><input type="checkbox" value="1930" onchange="applyDecades()"><span>1930s</span></div>
-          <div class="decade-opt"><input type="checkbox" value="1940" onchange="applyDecades()"><span>1940s</span></div>
-          <div class="decade-opt"><input type="checkbox" value="1950" onchange="applyDecades()"><span>1950s</span></div>
-          <div class="decade-opt"><input type="checkbox" value="1960" onchange="applyDecades()"><span>1960s</span></div>
-          <div class="decade-opt"><input type="checkbox" value="1970" onchange="applyDecades()"><span>1970s</span></div>
-          <div class="decade-opt"><input type="checkbox" value="1980" onchange="applyDecades()"><span>1980s</span></div>
-          <div class="decade-opt"><input type="checkbox" value="1990" onchange="applyDecades()"><span>1990s</span></div>
-          <div class="decade-opt"><input type="checkbox" value="2000" onchange="applyDecades()"><span>2000s</span></div>
-          <div class="decade-opt"><input type="checkbox" value="2010" onchange="applyDecades()"><span>2010s</span></div>
-          <div class="decade-opt"><input type="checkbox" value="2020" onchange="applyDecades()"><span>2020s</span></div>
-        </div>
+    <div class="filter-sep"></div>
+    <button class="fmt-toggle" data-fmt="KINDLE" onclick="toggleFormatFilter('KINDLE',this)">KINDLE</button>
+    <button class="fmt-toggle" data-fmt="BOOK" onclick="toggleFormatFilter('BOOK',this)">BOOK</button>
+    <button class="fmt-toggle" data-fmt="AUDIO" onclick="toggleFormatFilter('AUDIO',this)">AUDIO</button>
+    <button class="fmt-toggle" data-fmt="COMIC" onclick="toggleFormatFilter('COMIC',this)">COMIC</button>
+    <div class="filter-sep"></div>
+    <button class="fiction-pill" id="fiction-pill-fiction" onclick="toggleFictionFilter('fiction',this)">FICTION</button>
+    <button class="fiction-pill" id="fiction-pill-nonfiction" onclick="toggleFictionFilter('nonfiction',this)">NON-FICTION</button>
+    <button class="fiction-pill" id="fiction-pill-nodata" onclick="toggleFictionFilter('nodata',this)">NO DATA</button>
+    <div class="filter-sep"></div>
+    <input type="text" id="title-search" class="header-select" placeholder="Title…" oninput="applyFilters()" style="width:110px;padding:5px 8px;font-size:.75rem">
+    <input type="text" id="author-search" class="header-select" placeholder="Author…" oninput="applyFilters()" style="width:100px;padding:5px 8px;font-size:.75rem">
+    <!-- genre hidden — values stored but filter deprioritised -->
+    <select class="header-select" id="genre-filter-select" onchange="applyFilters()" style="display:none">
+      <option value="">Genre</option>
+      <option value="Mystery, Thriller &amp; Suspense">Mystery &amp; Thriller</option>
+      <option value="Science Fiction &amp; Fantasy">Sci-Fi &amp; Fantasy</option>
+      <option value="Biographies &amp; Memoirs">Biography &amp; Memoir</option>
+      <option value="Humor &amp; Entertainment">Humor</option>
+      <option value="Politics &amp; Social Sciences">Politics &amp; Society</option>
+      <option value="Romance">Romance</option>
+      <option value="History">History</option>
+      <option value="Computers &amp; Technology">Tech</option>
+      <option value="Sports &amp; Outdoors">Sports</option>
+      <option value="Science &amp; Math">Science</option>
+      <option value="Self-Help">Self-Help</option>
+      <option value="Business &amp; Money">Business</option>
+    </select>
+    <select class="header-select" id="page-range-select" onchange="applyFilters()" style="max-width:80px">
+      <option value="">Pages</option>
+      <option value="none">No data</option>
+      <option value="u200">&lt;200</option>
+      <option value="200-300">200–300</option>
+      <option value="300-400">300–400</option>
+      <option value="o400">400+</option>
+    </select>
+    <select class="header-select" id="rating-filter-select" onchange="applyFilters()" style="max-width:90px">
+      <option value="">Rating</option>
+      <option value="5">★★★★★</option>
+      <option value="4">★★★★+</option>
+      <option value="3">★★★+</option>
+    </select>
+    <div class="decade-wrap">
+      <button id="decade-btn" onclick="toggleDecadePopup(event)">Decade ▾</button>
+      <div id="decade-popup">
+        <div class="decade-opt"><input type="checkbox" value="1920" onchange="applyDecades()"><span>1920s</span></div>
+        <div class="decade-opt"><input type="checkbox" value="1930" onchange="applyDecades()"><span>1930s</span></div>
+        <div class="decade-opt"><input type="checkbox" value="1940" onchange="applyDecades()"><span>1940s</span></div>
+        <div class="decade-opt"><input type="checkbox" value="1950" onchange="applyDecades()"><span>1950s</span></div>
+        <div class="decade-opt"><input type="checkbox" value="1960" onchange="applyDecades()"><span>1960s</span></div>
+        <div class="decade-opt"><input type="checkbox" value="1970" onchange="applyDecades()"><span>1970s</span></div>
+        <div class="decade-opt"><input type="checkbox" value="1980" onchange="applyDecades()"><span>1980s</span></div>
+        <div class="decade-opt"><input type="checkbox" value="1990" onchange="applyDecades()"><span>1990s</span></div>
+        <div class="decade-opt"><input type="checkbox" value="2000" onchange="applyDecades()"><span>2000s</span></div>
+        <div class="decade-opt"><input type="checkbox" value="2010" onchange="applyDecades()"><span>2010s</span></div>
+        <div class="decade-opt"><input type="checkbox" value="2020" onchange="applyDecades()"><span>2020s</span></div>
       </div>
     </div>
+    <div class="filter-sep"></div>
+    <select class="header-select" id="sort-select" onchange="sortOrder=this.value;applyFilters()" style="max-width:110px">
+      <option value="title">Title A–Z</option>
+      <option value="author">Author A–Z</option>
+      <option value="dateAdded">Date Added</option>
+      <option value="dateRead">Date Read</option>
+      <option value="rating">My Rating</option>
+      <option value="pages">Page Count</option>
+    </select>
   </div>
 </div>
 
@@ -1280,7 +1272,11 @@ function renderCard(book) {
   const pages = book.pages ? `${book.pages} pp` : (book.audioLength ? formatAudioLen(book.audioLength) : '');
   const statusIcon = {reading:'▶',read:'✓',reread:'↩'};
   const dotCls = status !== 'unread' ? `status-dot ${status}` : '';
-  const readBtn = (!READ_ONLY && status==='unread') ? `<button class="card-read-btn" onclick="quickMarkRead(event,'${escId(book.id)}')">✓ Mark Read</button>` : '';
+  let readBtn = '';
+  if (!READ_ONLY) {
+    if (status==='unread'||status==='reread') readBtn=`<button class="card-read-btn reading-btn" onclick="quickMarkReading(event,'${escId(book.id)}')">▶ Mark Reading</button>`;
+    else if (status==='reading') readBtn=`<button class="card-read-btn" onclick="quickMarkRead(event,'${escId(book.id)}')">✓ Mark Read</button>`;
+  }
   const seriesLabel = book.series && book.seriesPosition ? `Book ${book.seriesPosition}: ${esc(book.series)}` : (book.series ? esc(book.series) : '');
   const seriesInfo = seriesLabel ? `<div class="card-series" onclick="event.stopPropagation();filterBySeries('${escId(book.series)}')" title="Filter to this series">${seriesLabel}</div>` : '';
   return `<div class="book-card${nocover&&!book.customCover?' not-found-card':''}" data-id="${escId(book.id)}"${needsEnrich?` data-needs-enrich="1" data-isbn="${book.isbn13||''}" data-asin="${book.asin||''}" data-search-title="${esc(book.title)}" data-search-author="${esc(book.author||'')}"`:''}
@@ -1693,8 +1689,23 @@ async function enrichBook(id, isbn, asin, title, author) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// QUICK MARK READ
+// QUICK MARK READ / READING
 // ═══════════════════════════════════════════════════════════════
+async function quickMarkReading(e, id) {
+  e.stopPropagation();
+  const btn = e.target;
+  const prev = statusMap.get(id) || 'unread';
+  btn.textContent = '▶ Reading!';
+  statusMap.set(id, 'reading');
+  try {
+    await sbSetStatus(id, 'reading');
+    applyFilters();
+  } catch(err) {
+    statusMap.set(id, prev);
+    applyFilters();
+  }
+}
+
 async function quickMarkRead(e, id) {
   e.stopPropagation();
   const btn = e.target;
