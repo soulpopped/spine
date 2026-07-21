@@ -792,7 +792,7 @@ async function sbDeleteBook(id) {
 // ═══════════════════════════════════════════════════════════════
 function fetchOLCover(isbn13) {
   if (!isbn13) return Promise.resolve(null);
-  const url = `https://covers.openlibrary.org/b/isbn/${isbn13}-L.jpg`;
+  const url = `https://covers.openlibrary.org/b/isbn/${isbn13}-M.jpg`;
   return new Promise(resolve => {
     const img = new Image();
     img.onload  = () => resolve(img.naturalWidth > 2 ? url : null);
@@ -850,7 +850,7 @@ function parseOLSearchDoc(doc) {
     authors: doc.author_name || [],
     description: '',
     pages: doc.number_of_pages_median || null,
-    cover: covId ? `https://covers.openlibrary.org/b/id/${covId}-L.jpg` : '',
+    cover: covId ? `https://covers.openlibrary.org/b/id/${covId}-M.jpg` : '',
     isbn13, isbn10,
     publisher: (doc.publisher||[])[0] || '',
     yearPublished: doc.first_publish_year || null,
@@ -1612,7 +1612,7 @@ async function enrichBook(id, isbn, asin, title, author) {
       const doc = data.docs?.[0];
       if (doc) {
         if (!coverUrl && doc.cover_i) {
-          const url = `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`;
+          const url = `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`;
           coverUrl = await new Promise(resolve => {
             const img = new Image();
             img.onload  = () => resolve(img.naturalWidth > 2 ? url : null);
@@ -1876,7 +1876,7 @@ async function refetchFromOL() {
       const doc = data.docs?.[0];
       if (doc) {
         if (!foundCover && doc.cover_i) {
-          const url = `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`;
+          const url = `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`;
           foundCover = await new Promise(resolve => {
             const img=new Image(); img.onload=()=>resolve(img.naturalWidth>2?url:null); img.onerror=()=>resolve(null); img.src=url;
           });
