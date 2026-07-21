@@ -147,7 +147,18 @@ label{display:block;font-size:.7rem;color:var(--text-dim);margin-bottom:5px;text
 .card-title{font-size:.88rem;line-height:1.3;color:var(--text);font-weight:500;margin-bottom:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .card-author{font-size:.74rem;color:var(--text-dim);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card-pages{font-size:.66rem;color:var(--text-dim)}
-.card-series{font-size:.6rem;color:var(--accent);opacity:.7;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-series{font-size:.6rem;color:var(--accent);opacity:.7;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;transition:opacity .15s}
+.card-series:hover{opacity:1;text-decoration:underline}
+/* fiction filter pills */
+.fiction-pill{padding:4px 9px;border:1px solid var(--border);border-radius:2px;font-size:.68rem;letter-spacing:.06em;font-weight:700;cursor:pointer;background:none;font-family:inherit;transition:all .15s;flex-shrink:0;white-space:nowrap;color:var(--text-dim)}
+.fiction-pill:hover{border-color:var(--text-muted)}
+.fiction-pill.active-fiction{background:rgba(80,200,120,.15);border-color:#50c878;color:#50c878}
+.fiction-pill.active-nonfiction{background:rgba(100,160,240,.15);border-color:#64a0f0;color:#64a0f0}
+.fiction-pill.active-nodata{background:rgba(150,150,150,.15);border-color:#888;color:#aaa}
+/* fiction chips in fix modal */
+.fiction-chip{padding:4px 10px;border:1px solid var(--border);border-radius:2px;font-size:.68rem;font-weight:700;letter-spacing:.06em;cursor:pointer;background:none;font-family:inherit;transition:all .15s;color:var(--text-dim)}
+.fiction-chip.active-fiction{background:rgba(80,200,120,.15);border-color:#50c878;color:#50c878}
+.fiction-chip.active-nonfiction{background:rgba(100,160,240,.15);border-color:#64a0f0;color:#64a0f0}
 .not-found-card .book-cover-placeholder{opacity:.4}
 .empty-state{text-align:center;padding:80px 24px;color:var(--text-dim);grid-column:1/-1}
 .empty-state h2{font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:.1em;margin-bottom:8px}
@@ -171,7 +182,7 @@ body.public-mode .card-fix-btn,body.public-mode .card-read-btn,body.public-mode 
 .detail-badge{font-size:.58rem;font-weight:700;letter-spacing:.1em;padding:2px 7px;border-radius:2px;text-transform:uppercase}
 #detail-status-pill{font-size:.68rem;font-weight:600;letter-spacing:.06em;padding:3px 9px;border-radius:3px;border:1px solid currentColor}
 #detail-year{font-size:.75rem;color:var(--text-dim)}
-#detail-pages{font-size:.75rem;color:var(--text-dim)}
+#detail-pages,.detail-pages-span{font-size:.75rem;color:var(--text-dim)}
 #detail-rating{display:flex;gap:2px;margin-bottom:14px}
 #detail-rating .star{font-size:1rem;color:var(--accent);opacity:.25}
 #detail-rating .star.lit{opacity:1}
@@ -303,10 +314,6 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     <span class="header-stats" id="header-stats"></span>
     <div class="header-btns">
       <button class="icon-btn" id="random-btn" onclick="pickRandom()">📖 What to Read?</button>
-      <button class="icon-btn" id="fetch-covers-btn" onclick="fetchAllCovers()">🎨 Fetch Covers</button>
-      <button class="icon-btn" id="reenrich-btn" onclick="reEnrichMissing()">🔄 Re-enrich</button>
-      <span id="cover-count" style="font-size:.62rem;color:var(--text-muted);letter-spacing:.06em;white-space:nowrap"></span>
-      <span id="desc-count" style="font-size:.62rem;color:var(--text-muted);letter-spacing:.06em;white-space:nowrap"></span>
       <button class="icon-btn" id="add-btn" onclick="openAddModal()">+ Add</button>
       <button class="icon-btn" id="import-btn" onclick="openImportModal()">⇑ Import</button>
       <button class="icon-btn" id="select-btn" onclick="enterSelectMode()">Select</button>
@@ -341,6 +348,10 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       <button class="fmt-toggle" data-fmt="BOOK" onclick="toggleFormatFilter('BOOK',this)">BOOK</button>
       <button class="fmt-toggle" data-fmt="AUDIO" onclick="toggleFormatFilter('AUDIO',this)">AUDIO</button>
       <button class="fmt-toggle" data-fmt="COMIC" onclick="toggleFormatFilter('COMIC',this)">COMIC</button>
+      <div class="filter-sep"></div>
+      <button class="fiction-pill" id="fiction-pill-fiction" onclick="toggleFictionFilter('fiction',this)">Fiction</button>
+      <button class="fiction-pill" id="fiction-pill-nonfiction" onclick="toggleFictionFilter('nonfiction',this)">Non-Fiction</button>
+      <button class="fiction-pill" id="fiction-pill-nodata" onclick="toggleFictionFilter('nodata',this)">No Data</button>
       <div class="filter-sep"></div>
       <input type="text" id="title-search" class="header-select" placeholder="Title…" oninput="applyFilters()" style="width:120px;padding:5px 8px;font-size:.75rem">
       <div class="filter-sep"></div>
@@ -449,6 +460,13 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       <button class="btn" id="fix-s-reading" onclick="setFixStatus2('reading')">Reading</button>
       <button class="btn" id="fix-s-read" onclick="setFixStatus2('read')">Read</button>
       <button class="btn" id="fix-s-reread" onclick="setFixStatus2('reread')">To Re-read</button>
+    </div>
+
+    <div class="fix-section">Fiction / Non-Fiction</div>
+    <div class="format-chips" id="fix-fiction-chips">
+      <button class="fiction-chip" id="fix-fc-fiction" onclick="setFictionStatus('fiction')">Fiction</button>
+      <button class="fiction-chip" id="fix-fc-nonfiction" onclick="setFictionStatus('nonfiction')">Non-Fiction</button>
+      <button class="fiction-chip" id="fix-fc-unknown" onclick="setFictionStatus(null)">Unknown</button>
     </div>
 
     <div class="fix-section">Book Info</div>
@@ -631,6 +649,15 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       <button class="btn" onclick="downloadTemplate()">⬇ Template CSV</button>
     </div>
     <div class="import-log" id="import-log" style="display:none"></div>
+
+    <hr class="modal-hr">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.12em;color:var(--accent);margin-bottom:6px">Backup / Restore</div>
+    <div style="font-size:.75rem;color:var(--text-dim);margin-bottom:12px">Download a full JSON backup of your library, or restore from a previous backup file.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <button class="btn" onclick="downloadBackup()">⬇ Download Backup</button>
+      <label class="btn" style="cursor:pointer">⬆ Restore Backup<input type="file" id="restore-file" accept=".json" style="display:none" onchange="restoreBackup(this)"></label>
+    </div>
+    <div id="restore-status" style="font-size:.72rem;color:var(--text-muted);min-height:16px"></div>
   </div>
 </div>
 
@@ -651,6 +678,12 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     <option value="PHYS">BOOK</option>
     <option value="AUDIO">AUDIO</option>
     <option value="COMIC">COMIC</option>
+  </select>
+  <select class="header-select" id="bulk-fiction-select">
+    <option value="">— Fiction —</option>
+    <option value="fiction">Fiction</option>
+    <option value="nonfiction">Non-Fiction</option>
+    <option value="clear">Clear</option>
   </select>
   <button class="btn btn-accent" onclick="saveBulkEdit()" style="font-size:.68rem;padding:6px 11px">Apply</button>
   <button class="btn" id="bulk-merge-btn" onclick="bulkMerge()" style="font-size:.68rem;padding:6px 11px;display:none">⇄ Merge 2</button>
@@ -692,6 +725,9 @@ let addFormats   = new Set();
 let isbnFormats  = new Set();
 let manFormats   = new Set();
 let selectedDecades = new Set();
+let selectedSeries = null;
+let selectedFictionFilter = '';
+let fixFictionVal = null;
 
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE HELPERS
@@ -1162,6 +1198,13 @@ function applyFilters() {
       const dec = Math.floor(yr/10)*10;
       if (!selectedDecades.has(dec)) return false;
     }
+    // Series filter
+    if (selectedSeries && b.series !== selectedSeries) return false;
+    // Fiction filter
+    if (selectedFictionFilter) {
+      if (selectedFictionFilter === 'nodata') { if (b.fictionStatus) return false; }
+      else { if (b.fictionStatus !== selectedFictionFilter) return false; }
+    }
     return true;
   });
 
@@ -1169,7 +1212,7 @@ function applyFilters() {
   filteredBooks.sort((a,b) => {
     if (sortOrder==='title') return sortTitle(a.sortTitle || a.displayTitle || a.title).localeCompare(sortTitle(b.sortTitle || b.displayTitle || b.title));
     if (sortOrder==='author') return authorSortKey(a.author).localeCompare(authorSortKey(b.author));
-    if (sortOrder==='dateAdded') return (b.dateAdded||'').localeCompare(a.dateAdded||'');
+    if (sortOrder==='dateAdded') return (b.dateAdded||'0001-01-01').localeCompare(a.dateAdded||'0001-01-01');
     if (sortOrder==='dateRead') return (b.dateRead||'').localeCompare(a.dateRead||'');
     if (sortOrder==='rating') return (b.rating||0)-(a.rating||0);
     if (sortOrder==='pages') return (b.pages||0)-(a.pages||0);
@@ -1197,6 +1240,9 @@ function resetAllFilters() {
   document.getElementById('sort-select').value='title'; sortOrder='title';
   document.querySelectorAll('#decade-popup input[type=checkbox]').forEach(c=>c.checked=false);
   document.getElementById('decade-btn').classList.remove('has-selection');
+  selectedSeries = null;
+  selectedFictionFilter = '';
+  document.querySelectorAll('.fiction-pill').forEach(b=>b.classList.remove('active-fiction','active-nonfiction','active-nodata'));
   applyFilters();
 }
 
@@ -1208,10 +1254,6 @@ function updateStats() {
   const labels = {all:`All ${total}`,unread:`Unread ${counts.unread}`,reading:`Reading ${counts.reading}`,read:`Read ${counts.read}`,reread:`Re-read ${counts.reread}`};
   pills.forEach(p => { if(labels[p.dataset.status]) p.textContent=labels[p.dataset.status]; });
   document.getElementById('header-stats').textContent = filteredBooks.length !== total ? `${filteredBooks.length} of ${total}` : '';
-  const withCover = books.filter(b => b.cover || b.customCover).length;
-  const withDesc  = books.filter(b => b.description && b.description.length > 10).length;
-  document.getElementById('cover-count').textContent = `${withCover}/${total} covers`;
-  document.getElementById('desc-count').textContent  = `· ${withDesc}/${total} desc`;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1235,11 +1277,12 @@ function renderCard(book) {
   const cover = book.customCover || book.cover || '';
   const needsEnrich = !cover && (book.isbn13 || book.asin || book.title);
   const nocover = !cover;
-  const pages = book.audioLength ? formatAudioLen(book.audioLength) : (book.pages ? `${book.pages} pp` : '');
+  const pages = book.pages ? `${book.pages} pp` : (book.audioLength ? formatAudioLen(book.audioLength) : '');
   const statusIcon = {reading:'▶',read:'✓',reread:'↩'};
   const dotCls = status !== 'unread' ? `status-dot ${status}` : '';
   const readBtn = (!READ_ONLY && status==='unread') ? `<button class="card-read-btn" onclick="quickMarkRead(event,'${escId(book.id)}')">✓ Mark Read</button>` : '';
-  const seriesInfo = book.series && book.seriesPosition ? `<div class="card-series">Book ${book.seriesPosition}: ${esc(book.series)}</div>` : (book.series ? `<div class="card-series">${esc(book.series)}</div>` : '');
+  const seriesLabel = book.series && book.seriesPosition ? `Book ${book.seriesPosition}: ${esc(book.series)}` : (book.series ? esc(book.series) : '');
+  const seriesInfo = seriesLabel ? `<div class="card-series" onclick="event.stopPropagation();filterBySeries('${escId(book.series)}')" title="Filter to this series">${seriesLabel}</div>` : '';
   return `<div class="book-card${nocover&&!book.customCover?' not-found-card':''}" data-id="${escId(book.id)}"${needsEnrich?` data-needs-enrich="1" data-isbn="${book.isbn13||''}" data-asin="${book.asin||''}" data-search-title="${esc(book.title)}" data-search-author="${esc(book.author||'')}"`:''}
     onclick="cardClick(event,'${escId(book.id)}')">
     <div class="card-img-wrap">
@@ -1328,8 +1371,8 @@ function openDetailModal(id) {
     metaHTML += `<span id="detail-status-pill" style="color:${statusColor[status]};border-color:${statusColor[status]}">${statusLabel[status]}</span>`;
   }
   if (book.yearPublished) metaHTML += `<span id="detail-year">${book.yearPublished}</span>`;
-  if (book.pages) metaHTML += `<span id="detail-pages">${book.pages} pp</span>`;
-  if (book.audioLength) metaHTML += `<span id="detail-pages">${formatAudioLen(book.audioLength)}</span>`;
+  if (book.pages) metaHTML += `<span class="detail-pages-span">${book.pages} pp</span>`;
+  if (book.audioLength) metaHTML += `<span class="detail-pages-span">🎧 ${formatAudioLen(book.audioLength)}</span>`;
   document.getElementById('detail-meta-row').innerHTML = metaHTML;
 
   // Rating stars
@@ -1694,6 +1737,10 @@ function openFixModal(id) {
   document.getElementById('fix-description').value = book.description || '';
   document.getElementById('fix-cover').value = book.customCover || book.cover || '';
 
+  // Fiction status
+  fixFictionVal = book.fictionStatus || null;
+  highlightFictionStatus();
+
   // Formats
   fixFormats = new Set(book.formats || []);
   if (book.isComic) fixFormats.add('COMIC');
@@ -1763,6 +1810,7 @@ async function saveFixModal() {
   book.rating      = fixRating||null;
   book.formats     = [...fixFormats].filter(f=>f!=='COMIC');
   book.isComic     = fixFormats.has('COMIC');
+  book.fictionStatus = fixFictionVal;
 
   try {
     await sbSaveBook(book);
@@ -2529,14 +2577,19 @@ function bulkToggleAll() {
   updateBulkCount();
 }
 async function saveBulkEdit() {
-  const statusVal = document.getElementById('bulk-status-select').value;
-  const fmtVal    = document.getElementById('bulk-format-select').value;
-  if (!statusVal&&!fmtVal) { alert('Choose a status or format to apply.'); return; }
-  const toUpdate  = books.filter(b=>selectedIds.has(String(b.id)));
+  const statusVal  = document.getElementById('bulk-status-select').value;
+  const fmtVal     = document.getElementById('bulk-format-select').value;
+  const fictionVal = document.getElementById('bulk-fiction-select').value;
+  if (!statusVal && !fmtVal && !fictionVal) { alert('Choose something to apply.'); return; }
+  const toUpdate = books.filter(b=>selectedIds.has(String(b.id)));
   if (!toUpdate.length) { alert('Nothing selected.'); return; }
 
-  if (fmtVal) {
-    toUpdate.forEach(b=>{ b.formats=[fmtVal]; });
+  if (fmtVal) toUpdate.forEach(b=>{ b.formats=[fmtVal]; });
+  if (fictionVal) {
+    const setVal = fictionVal === 'clear' ? null : fictionVal;
+    toUpdate.forEach(b=>{ b.fictionStatus = setVal; });
+  }
+  if (fmtVal || fictionVal) {
     await sbFetch('books',{method:'POST',headers:{...SB_HDR,'Prefer':'resolution=merge-duplicates'},
       body:JSON.stringify(toUpdate.map(b=>({id:String(b.id),data:b,updated_at:new Date().toISOString()})))});
   }
@@ -2580,6 +2633,88 @@ async function bulkDelete() {
   // Remove from local array
   books = books.filter(b => !selectedIds.has(String(b.id)));
   exitSelectMode(); applyFilters(); updateStats();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SERIES FILTER
+// ═══════════════════════════════════════════════════════════════
+function filterBySeries(name) {
+  if (selectedSeries === name) {
+    selectedSeries = null;
+  } else {
+    selectedSeries = name;
+  }
+  applyFilters();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FICTION FILTER + FIX MODAL
+// ═══════════════════════════════════════════════════════════════
+function toggleFictionFilter(val, btn) {
+  document.querySelectorAll('.fiction-pill').forEach(b=>b.classList.remove('active-fiction','active-nonfiction','active-nodata'));
+  if (selectedFictionFilter === val) {
+    selectedFictionFilter = '';
+  } else {
+    selectedFictionFilter = val;
+    btn.classList.add('active-' + val);
+  }
+  applyFilters();
+}
+
+function setFictionStatus(val) { fixFictionVal = val; highlightFictionStatus(); }
+function highlightFictionStatus() {
+  ['fiction','nonfiction'].forEach(k => {
+    const btn = document.getElementById('fix-fc-'+k);
+    if (btn) btn.className = 'fiction-chip' + (fixFictionVal === k ? ' active-'+k : '');
+  });
+  const unknBtn = document.getElementById('fix-fc-unknown');
+  if (unknBtn) unknBtn.className = 'fiction-chip' + (fixFictionVal === null ? ' btn-accent' : '');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BACKUP / RESTORE
+// ═══════════════════════════════════════════════════════════════
+function downloadBackup() {
+  const data = books.map(b => ({
+    ...b,
+    status: statusMap.get(String(b.id)) || 'unread',
+  }));
+  const json = JSON.stringify(data, null, 2);
+  const a = document.createElement('a');
+  const ts = new Date().toISOString().slice(0,10);
+  a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(json);
+  a.download = `spine-backup-${ts}.json`;
+  a.click();
+}
+
+async function restoreBackup(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const st = document.getElementById('restore-status');
+  st.textContent = 'Reading backup…';
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if (!Array.isArray(data)) throw new Error('Invalid backup format.');
+    st.textContent = `Found ${data.length} books. Restoring…`;
+    let done = 0;
+    for (const item of data) {
+      const { status, ...book } = item;
+      await sbSaveBook(book);
+      if (status && status !== 'unread') await sbSetStatus(String(book.id), status);
+      done++;
+      if (done % 20 === 0) st.textContent = `Restoring… ${done}/${data.length}`;
+    }
+    st.textContent = `✓ Restored ${done} books. Reload to see changes.`;
+    // Reload data
+    await loadAllBooks();
+    buildYearReadOptions();
+    applyFilters();
+    updateStats();
+  } catch(e) {
+    st.textContent = '⚠ ' + e.message;
+  }
+  input.value = '';
 }
 
 // ═══════════════════════════════════════════════════════════════
