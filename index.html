@@ -126,9 +126,9 @@ label{display:block;font-size:.7rem;color:var(--text-dim);margin-bottom:5px;text
 /* quick read button on hover */
 .card-read-btn{position:absolute;bottom:0;left:0;right:0;display:none;background:rgba(0,0,0,.82);border:none;border-top:1px solid rgba(255,255,255,.12);color:var(--s-read);font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:inherit;padding:6px;transition:background .15s}
 .book-card:hover .card-read-btn{display:block}
-.card-read-btn:hover{background:rgba(96,165,250,.18)}
+.card-read-btn:hover{background:rgba(20,60,130,.92)}
 .card-read-btn.reading-btn{color:var(--s-reading)}
-.card-read-btn.reading-btn:hover{background:rgba(232,200,122,.18)}
+.card-read-btn.reading-btn:hover{background:rgba(80,60,5,.92)}
 /* status icon (replaces old dot) */
 .status-dot{position:absolute;top:5px;right:5px;font-size:.6rem;font-weight:700;letter-spacing:.02em;padding:2px 5px;border-radius:3px;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.55);font-family:inherit}
 .status-dot.reading{background:var(--s-reading);color:#1a1108}
@@ -1274,8 +1274,8 @@ function renderCard(book) {
   const dotCls = status !== 'unread' ? `status-dot ${status}` : '';
   let readBtn = '';
   if (!READ_ONLY) {
-    if (status==='unread'||status==='reread') readBtn=`<button class="card-read-btn reading-btn" onclick="quickMarkReading(event,'${escId(book.id)}')">▶ Mark Reading</button>`;
-    else if (status==='reading') readBtn=`<button class="card-read-btn" onclick="quickMarkRead(event,'${escId(book.id)}')">✓ Mark Read</button>`;
+    if (status==='reading') readBtn=`<button class="card-read-btn" onclick="quickMarkRead(event,'${escId(book.id)}')">✓ Mark Read</button>`;
+    else readBtn=`<button class="card-read-btn reading-btn" onclick="quickMarkReading(event,'${escId(book.id)}')">▶ Mark Reading</button>`;
   }
   const seriesLabel = book.series && book.seriesPosition ? `Book ${book.seriesPosition}: ${esc(book.series)}` : (book.series ? esc(book.series) : '');
   const seriesInfo = seriesLabel ? `<div class="card-series" onclick="event.stopPropagation();filterBySeries('${escId(book.series)}')" title="Filter to this series">${seriesLabel}</div>` : '';
