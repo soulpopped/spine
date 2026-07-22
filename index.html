@@ -2516,12 +2516,15 @@ async function lookupISBN() {
   st.textContent='Looking up…';
   let book = await olFetchByISBN(raw);
   if (!book) book = await gbFetchByISBN(raw);
-  // Third fallback: OL search index (covers books the Books API misses)
+  // Third fallback: OL search by isbn= field (more comprehensive than the Books API)
   if (!book) {
     st.textContent='Trying broader search…';
-    const results = await searchOL(raw);
-    // Find the result whose ISBN list includes our ISBN
-    book = results.find(r => r.isbn13 === raw || r.isbn10 === raw) || results[0] || null;
+    try {
+      const r = await fetch(`https://openlibrary.org/search.json?isbn=${raw}&fields=key,title,author_name,cover_i,first_publish_year,number_of_pages_median,isbn,publisher,subject&limit=1`);
+      const data = await r.json();
+      const doc = (data.docs||[])[0];
+      if (doc) book = parseOLSearchDoc(doc);
+    } catch {}
   }
   if (!book) { st.textContent='Not found — this ISBN may not be in Open Library or Google Books. Try the Search tab or add manually.'; return; }
   const gb = book;
