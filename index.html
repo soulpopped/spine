@@ -675,6 +675,48 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       <button class="btn btn-accent" onclick="addManualBook()">Add to SPINE</button>
       <div id="man-status" style="font-size:.72rem;color:var(--text-muted);margin-top:8px;min-height:16px"></div>
     </div>
+
+    <!-- Confirm & Edit form — shared by Search + ISBN tabs -->
+    <div id="add-confirm-form" style="display:none">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <button class="btn" onclick="backToAddSearch()" style="font-size:.7rem;padding:4px 10px">← Back</button>
+        <div style="font-size:.68rem;color:var(--text-dim)" id="add-conf-source"></div>
+      </div>
+      <div style="display:flex;gap:14px;margin-bottom:14px;align-items:flex-start">
+        <div style="flex-shrink:0;width:56px">
+          <img id="add-conf-thumb" src="" alt="" style="width:56px;height:84px;object-fit:cover;border-radius:4px;display:none">
+          <div id="add-conf-thumb-ph" style="width:56px;height:84px;background:var(--surface2);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:1.2rem">📖</div>
+        </div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px">
+          <div class="form-group full" style="margin:0"><label>Title *</label><input type="text" id="conf-title"></div>
+          <div class="form-group full" style="margin:0"><label>Author</label><input type="text" id="conf-author"></div>
+        </div>
+      </div>
+      <div class="form-group full"><label>Cover URL</label><input type="text" id="conf-cover" placeholder="https://…" oninput="updateConfThumb()"></div>
+      <div class="form-group full"><label>Description</label><textarea id="conf-desc" rows="4" style="resize:vertical"></textarea></div>
+      <div class="fix-row">
+        <div class="form-group"><label>Pages</label><input type="number" id="conf-pages" min="1"></div>
+        <div class="form-group"><label>Year Published</label><input type="number" id="conf-year" min="1000" max="2100"></div>
+      </div>
+      <div class="form-group full"><label>Publisher</label><input type="text" id="conf-publisher"></div>
+      <div class="fix-row">
+        <div class="form-group"><label>Series</label><input type="text" id="conf-series"></div>
+        <div class="form-group"><label>Position</label><input type="number" id="conf-series-pos" min="1" step="0.5"></div>
+      </div>
+      <div class="form-group full"><label>ISBN-13</label><input type="text" id="conf-isbn"></div>
+      <div class="form-group full"><label>Format(s) owned</label>
+        <div class="format-chips" id="conf-format-chips">
+          <button class="format-chip" data-fmt="KINDLE" onclick="toggleConfFormat(this)">KINDLE</button>
+          <button class="format-chip" data-fmt="PHYS" onclick="toggleConfFormat(this)">BOOK</button>
+          <button class="format-chip" data-fmt="AUDIO" onclick="toggleConfFormat(this)">AUDIO</button>
+          <button class="format-chip" data-fmt="COMIC" onclick="toggleConfFormat(this)">COMIC</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap">
+        <button class="btn btn-accent" onclick="addConfirmedBook()">Add to SPINE</button>
+        <div id="add-conf-status" style="font-size:.72rem;color:var(--text-muted);min-height:16px"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2403,6 +2445,9 @@ function openAddModal() {
   ['man-title','man-author','man-isbn','man-series','man-desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('man-pages').value='';
   document.getElementById('man-status').textContent='';
+  document.getElementById('add-confirm-form').style.display='none';
+  document.querySelector('#add-content .tab-bar').style.display='';
+  document.querySelectorAll('#add-content .tab-pane').forEach(p=>p.style.display='');
   document.getElementById('add-overlay').classList.add('active');
 }
 function closeAddModal() { document.getElementById('add-overlay').classList.remove('active'); }
@@ -2443,7 +2488,96 @@ async function searchGoogleBooks() {
 function selectGBBook(idx) {
   selectedGBBook = window._gbResults[idx];
   document.querySelectorAll('#book-search-results .search-result').forEach((el,i)=>el.classList.toggle('selected',i===idx));
-  document.getElementById('add-formats-wrap').style.display='block';
+  showConfirmForm(selectedGBBook, 'Via title search');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ADD CONFIRM FORM
+// ═══════════════════════════════════════════════════════════════
+let _confBook = null;
+const confFormats = new Set();
+
+function showConfirmForm(book, source) {
+  _confBook = book;
+  document.querySelector('#add-content .tab-bar').style.display = 'none';
+  document.querySelectorAll('#add-content .tab-pane').forEach(p => p.style.display = 'none');
+  const form = document.getElementById('add-confirm-form');
+  form.style.display = 'block';
+  document.getElementById('add-conf-source').textContent = source || '';
+  document.getElementById('conf-title').value   = book.title || '';
+  document.getElementById('conf-author').value  = book.author || '';
+  document.getElementById('conf-cover').value   = book.cover || '';
+  document.getElementById('conf-desc').value    = book.description || '';
+  document.getElementById('conf-pages').value   = book.pages || '';
+  document.getElementById('conf-year').value    = book.yearPublished || '';
+  document.getElementById('conf-publisher').value = book.publisher || '';
+  document.getElementById('conf-series').value  = book.series || '';
+  document.getElementById('conf-series-pos').value = book.seriesPosition || '';
+  document.getElementById('conf-isbn').value    = book.isbn13 || '';
+  confFormats.clear();
+  document.querySelectorAll('#conf-format-chips .format-chip').forEach(c=>c.className='format-chip');
+  document.getElementById('add-conf-status').textContent = '';
+  updateConfThumb();
+}
+
+function backToAddSearch() {
+  document.getElementById('add-confirm-form').style.display = 'none';
+  document.querySelector('#add-content .tab-bar').style.display = '';
+  document.querySelectorAll('#add-content .tab-pane').forEach(p => p.style.display = '');
+}
+
+function updateConfThumb() {
+  const url = document.getElementById('conf-cover').value.trim();
+  const img = document.getElementById('add-conf-thumb');
+  const ph  = document.getElementById('add-conf-thumb-ph');
+  if (url) { img.src = url; img.style.display = 'block'; ph.style.display = 'none'; }
+  else     { img.style.display = 'none'; ph.style.display = 'flex'; }
+}
+
+function toggleConfFormat(chip) {
+  const fmt = chip.dataset.fmt;
+  const cls = 'active-' + fmt.toLowerCase();
+  if (confFormats.has(fmt)) { confFormats.delete(fmt); chip.className = 'format-chip'; }
+  else { confFormats.add(fmt); chip.className = 'format-chip ' + cls; }
+}
+
+async function addConfirmedBook() {
+  const title = document.getElementById('conf-title').value.trim();
+  if (!title) { document.getElementById('add-conf-status').textContent='Title required.'; return; }
+  const st = document.getElementById('add-conf-status');
+  st.textContent = 'Adding…';
+  const isbn13raw = document.getElementById('conf-isbn').value.trim().replace(/[^0-9X]/gi,'');
+  const isbn13 = isbn13raw.length >= 13 ? isbn13raw : (_confBook?.isbn13 || '');
+  const id = makeId(isbn13, '');
+  if (books.some(b=>String(b.id)===String(id))) { st.textContent='Already in your SPINE.'; return; }
+  const book = {
+    id, isbn13, asin: '',
+    title,
+    author:       document.getElementById('conf-author').value.trim(),
+    cover:        document.getElementById('conf-cover').value.trim() || '',
+    customCover:  null,
+    description:  document.getElementById('conf-desc').value.trim() || null,
+    pages:        parseInt(document.getElementById('conf-pages').value) || null,
+    audioLength:  null,
+    formats:      [...confFormats].filter(f=>f!=='COMIC'),
+    isComic:      confFormats.has('COMIC'),
+    genres:       _confBook?.genres || [],
+    yearPublished: parseInt(document.getElementById('conf-year').value) || null,
+    publisher:    document.getElementById('conf-publisher').value.trim() || null,
+    series:       document.getElementById('conf-series').value.trim() || null,
+    seriesPosition: parseFloat(document.getElementById('conf-series-pos').value) || null,
+    rating: null, dateRead: null,
+    dateAdded: new Date().toISOString().slice(0,10),
+  };
+  try {
+    await sbSaveBook(book);
+    books.unshift(book);
+    st.textContent = '✓ Added!';
+    sortOrder = 'dateAdded';
+    document.getElementById('sort-select').value = 'dateAdded';
+    applyFilters(); updateStats();
+    setTimeout(closeAddModal, 700);
+  } catch(e) { st.textContent = '⚠ ' + e.message; }
 }
 
 function toggleAddFormat(chip) {
@@ -2537,7 +2671,7 @@ async function lookupISBN() {
         <div class="sr-meta">${esc(gb.author)}${gb.yearPublished?' · '+gb.yearPublished:''}${gb.pages?' · '+gb.pages+' pp':''}</div>
       </div>
     </div>`;
-  document.getElementById('isbn-formats-wrap').style.display='block';
+  showConfirmForm(gb, 'Via ISBN · ' + raw);
   st.textContent='';
 }
 
