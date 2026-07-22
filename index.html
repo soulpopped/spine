@@ -1417,8 +1417,9 @@ function renderStats(year) {
   const isComic = b => (b.formats||[]).includes('COMIC') || b.isComic;
   const fmt = n => n.toLocaleString();
 
-  // Count unique books read in the period (matches grid filter logic)
+  // Count unique books read in the period — status must be 'read', matching the grid Read tab
   const allEntries = books.filter(b => {
+    if (getStatus(b.id) !== 'read') return false;
     const dates = b.readDates || (b.dateRead ? [b.dateRead] : []);
     return isAllTime ? dates.some(Boolean) : dates.some(d => d && d.startsWith(String(year)));
   });
