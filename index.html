@@ -2516,7 +2516,14 @@ async function lookupISBN() {
   st.textContent='Looking up…';
   let book = await olFetchByISBN(raw);
   if (!book) book = await gbFetchByISBN(raw);
-  if (!book) { st.textContent='Not found. Try the Search tab.'; return; }
+  // Third fallback: OL search index (covers books the Books API misses)
+  if (!book) {
+    st.textContent='Trying broader search…';
+    const results = await searchOL(raw);
+    // Find the result whose ISBN list includes our ISBN
+    book = results.find(r => r.isbn13 === raw || r.isbn10 === raw) || results[0] || null;
+  }
+  if (!book) { st.textContent='Not found — this ISBN may not be in Open Library or Google Books. Try the Search tab or add manually.'; return; }
   const gb = book;
   isbnGBBook=gb;
   document.getElementById('isbn-result').innerHTML=`
