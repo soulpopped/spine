@@ -293,8 +293,40 @@ body.public-mode .card-fix-btn,body.public-mode .card-read-btn,body.public-mode 
 hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
 .inline-label{font-size:.7rem;color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase;flex-shrink:0;white-space:nowrap}
 
+/* STATS MODAL */
+#stats-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:500;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(4px)}
+#stats-overlay.active{display:flex}
+#stats-content{background:var(--surface);border:1px solid var(--border);border-radius:10px;width:min(520px,calc(100vw - 32px));max-height:88vh;overflow-y:auto;position:relative;padding:28px 28px 24px;animation:fadeUp .2s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.stats-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.stats-logo{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.14em;color:var(--accent)}
+.stats-controls{display:flex;gap:8px;align-items:center}
+.stats-year-sel{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:.78rem;padding:5px 10px;border-radius:2px;cursor:pointer;outline:none}
+.stats-year-sel:focus{border-color:var(--accent)}
+.stats-x{background:none;border:1px solid var(--border);color:var(--text-muted);cursor:pointer;width:30px;height:30px;border-radius:2px;font-size:.95rem;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.stats-x:hover{color:var(--text);border-color:var(--text-muted)}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.stats-card{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:18px 20px}
+.stats-card-head{font-size:.58rem;text-transform:uppercase;letter-spacing:.16em;color:var(--text-dim);margin-bottom:14px}
+.stats-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.stats-row:last-of-type{margin-bottom:0}
+.stats-lbl{font-size:.72rem;color:var(--text-muted)}
+.stats-val{font-family:'Bebas Neue',sans-serif;font-size:1.75rem;letter-spacing:.04em;color:var(--text);line-height:1}
+.stats-card-foot{font-size:.62rem;color:var(--text-dim);margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+
+/* MARK READ DATE MODAL */
+#mark-date-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:600;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(4px)}
+#mark-date-overlay.active{display:flex}
+#mark-date-content{background:var(--surface);border:1px solid var(--border);border-radius:10px;width:min(320px,calc(100vw - 32px));padding:24px}
+.mark-date-ttl{font-family:'Bebas Neue',sans-serif;font-size:1.35rem;letter-spacing:.1em;color:var(--text);margin-bottom:3px}
+.mark-date-sub{font-size:.73rem;color:var(--text-muted);margin-bottom:16px}
+#mark-date-input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:.9rem;padding:10px 12px;border-radius:2px;margin-bottom:14px;box-sizing:border-box;outline:none}
+#mark-date-input:focus{border-color:var(--accent)}
+.mark-date-btns{display:flex;gap:8px}
+
 @media(max-width:600px){
   #book-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:9px}
+  .stats-grid{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -327,6 +359,7 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     <span class="app-title" onclick="resetAllFilters()">SPINE</span>
     <span class="header-stats" id="header-stats"></span>
     <div class="header-btns">
+      <button class="icon-btn" onclick="openStatsModal()">📊 Stats</button>
       <button class="icon-btn" id="random-btn" onclick="pickRandom()">📖 What to Read?</button>
       <button class="icon-btn" id="add-btn" onclick="openAddModal()">+ Add</button>
       <button class="icon-btn" id="import-btn" onclick="openImportModal()">⇑ Import</button>
@@ -717,6 +750,35 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
   <button class="btn" id="bulk-merge-btn" onclick="bulkMerge()" style="font-size:.68rem;padding:6px 11px;display:none">⇄ Merge 2</button>
   <button class="btn" onclick="bulkDelete()" style="font-size:.68rem;padding:6px 11px;border-color:#ef4444;color:#ef4444" id="bulk-delete-btn">🗑 Remove</button>
   <button class="btn" onclick="exitSelectMode()" style="font-size:.68rem;padding:6px 11px">Cancel</button>
+</div>
+
+<!-- STATS MODAL -->
+<div id="stats-overlay" onclick="if(event.target===this)closeStatsModal()">
+  <div id="stats-content">
+    <div class="stats-header">
+      <div class="stats-logo">SPINE STATS</div>
+      <div class="stats-controls">
+        <select class="stats-year-sel" id="stats-year-sel" onchange="renderStats(this.value)">
+          <option value="all">All Time</option>
+        </select>
+        <button class="stats-x" onclick="closeStatsModal()">✕</button>
+      </div>
+    </div>
+    <div id="stats-body"></div>
+  </div>
+</div>
+
+<!-- MARK READ DATE MODAL -->
+<div id="mark-date-overlay" onclick="if(event.target===this)cancelMarkDate()">
+  <div id="mark-date-content">
+    <div class="mark-date-ttl">When did you finish?</div>
+    <div class="mark-date-sub">Set the date you completed this book.</div>
+    <input type="date" id="mark-date-input" onkeydown="if(event.key==='Enter')confirmMarkDate()">
+    <div class="mark-date-btns">
+      <button class="btn btn-accent" style="flex:1" onclick="confirmMarkDate()">Mark Read</button>
+      <button class="btn" onclick="cancelMarkDate()">Cancel</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -1287,6 +1349,84 @@ function updateStats() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// STATS MODAL
+// ═══════════════════════════════════════════════════════════════
+function openStatsModal() {
+  const sel = document.getElementById('stats-year-sel');
+  // Collect years that have reads
+  const years = new Set();
+  books.forEach(b => {
+    if (b.dateRead) { const y = parseInt(b.dateRead.slice(0,4)); if (y > 1900) years.add(y); }
+  });
+  const sorted = [...years].sort((a,b) => b-a);
+  sel.innerHTML = '<option value="all">All Time</option>';
+  sorted.forEach(y => {
+    const o = document.createElement('option');
+    o.value = y; o.textContent = y;
+    sel.appendChild(o);
+  });
+  const thisYear = new Date().getFullYear();
+  sel.value = years.has(thisYear) ? String(thisYear) : 'all';
+  renderStats(sel.value);
+  document.getElementById('stats-overlay').classList.add('active');
+}
+
+function renderStats(year) {
+  const isAllTime = year === 'all';
+  const isComic = b => (b.formats||[]).includes('COMIC') || b.isComic;
+  const fmt = n => n.toLocaleString();
+
+  const readBooks = books.filter(b =>
+    b.dateRead && (isAllTime || b.dateRead.startsWith(String(year)))
+  );
+  const booksOnly = readBooks.filter(b => !isComic(b));
+  const comicsCount = readBooks.length - booksOnly.length;
+
+  const allCount  = readBooks.length;
+  const allPages  = readBooks.reduce((s,b) => s+(b.pages||0), 0);
+  const bookCount = booksOnly.length;
+  const bookPages = booksOnly.reduce((s,b) => s+(b.pages||0), 0);
+  const avgAll    = allCount  ? Math.round(allPages/allCount)  : 0;
+  const avgBooks  = bookCount ? Math.round(bookPages/bookCount): 0;
+
+  const periodLabel = isAllTime ? 'All Time' : String(year);
+
+  document.getElementById('stats-body').innerHTML = `
+    <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.14em;color:var(--text-dim);margin-bottom:14px">${periodLabel}</div>
+    <div class="stats-grid">
+      <div class="stats-card">
+        <div class="stats-card-head">All · incl. comics</div>
+        <div class="stats-row">
+          <span class="stats-lbl">Books Read</span>
+          <span class="stats-val">${fmt(allCount)}</span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-lbl">Pages Read</span>
+          <span class="stats-val">${allPages ? fmt(allPages) : '—'}</span>
+        </div>
+        ${avgAll||comicsCount ? `<div class="stats-card-foot">${avgAll ? `${fmt(avgAll)} pp avg` : ''}${avgAll&&comicsCount?' · ':''}${comicsCount ? `${comicsCount} comic${comicsCount!==1?'s':''}` : ''}</div>` : ''}
+      </div>
+      <div class="stats-card">
+        <div class="stats-card-head">Books Only</div>
+        <div class="stats-row">
+          <span class="stats-lbl">Books Read</span>
+          <span class="stats-val">${fmt(bookCount)}</span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-lbl">Pages Read</span>
+          <span class="stats-val">${bookPages ? fmt(bookPages) : '—'}</span>
+        </div>
+        ${avgBooks ? `<div class="stats-card-foot">${fmt(avgBooks)} pp avg</div>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function closeStatsModal() {
+  document.getElementById('stats-overlay').classList.remove('active');
+}
+
+// ═══════════════════════════════════════════════════════════════
 // GRID RENDER
 // ═══════════════════════════════════════════════════════════════
 function renderGrid() {
@@ -1312,7 +1452,7 @@ function renderCard(book) {
   const dotCls = status !== 'unread' ? `status-dot ${status}` : '';
   let readBtn = '';
   if (!READ_ONLY) {
-    if (status==='reading') readBtn=`<button class="card-read-btn" onclick="quickMarkRead(event,'${escId(book.id)}')">✓ Mark Read</button>`;
+    if (status==='reading') readBtn=`<button class="card-read-btn" onclick="event.stopPropagation();openMarkReadModal('${escId(book.id)}')">✓ Mark Read</button>`;
     else readBtn=`<button class="card-read-btn reading-btn" onclick="quickMarkReading(event,'${escId(book.id)}')">▶ Mark Reading</button>`;
   }
   const seriesLabel = book.series && book.seriesPosition ? `Book ${book.seriesPosition}: ${esc(book.series)}` : (book.series ? esc(book.series) : '');
@@ -1502,6 +1642,8 @@ function detailToEdit() {
 
 async function detailMarkRead() {
   if (!detailBookId) return;
+  openMarkReadModal(detailBookId);
+  return; // rest of UI refresh handled by confirmMarkDate + quickMarkRead → applyFilters
   await quickMarkRead(null, detailBookId);
   // Refresh status pill in modal
   const status = getStatus(detailBookId);
@@ -1744,11 +1886,11 @@ async function quickMarkReading(e, id) {
   }
 }
 
-async function quickMarkRead(e, id) {
+async function quickMarkRead(e, id, dateOverride) {
   if (e) { e.stopPropagation(); if (e.target) e.target.textContent = '✓ Saved'; }
   statusMap.set(id, 'read');
   const book = books.find(b=>String(b.id)===String(id));
-  if (book && !book.dateRead) book.dateRead = new Date().toISOString().slice(0,10);
+  if (book) book.dateRead = dateOverride || book.dateRead || new Date().toISOString().slice(0,10);
   try {
     await sbSetStatus(id, 'read');
     if (book) await sbSaveBook(book);
@@ -1759,6 +1901,37 @@ async function quickMarkRead(e, id) {
     statusMap.set(id, 'unread');
     applyFilters();
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MARK READ — DATE PICKER
+// ═══════════════════════════════════════════════════════════════
+let markDateId = null;
+
+function openMarkReadModal(id) {
+  markDateId = id;
+  const today = new Date().toISOString().slice(0,10);
+  const inp = document.getElementById('mark-date-input');
+  inp.value = today;
+  inp.max = today;
+  document.getElementById('mark-date-overlay').classList.add('active');
+  setTimeout(() => inp.focus(), 60);
+}
+
+async function confirmMarkDate() {
+  const id = markDateId;
+  if (!id) return;
+  const dateVal = document.getElementById('mark-date-input').value;
+  cancelMarkDate();
+  await quickMarkRead(null, id, dateVal || new Date().toISOString().slice(0,10));
+  // Refresh detail modal if it's open for this book
+  const readBtn = document.getElementById('detail-read-btn');
+  if (readBtn && String(detailBookId) === String(id)) readBtn.style.display = 'none';
+}
+
+function cancelMarkDate() {
+  document.getElementById('mark-date-overlay').classList.remove('active');
+  markDateId = null;
 }
 
 // ═══════════════════════════════════════════════════════════════
