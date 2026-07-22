@@ -1417,12 +1417,10 @@ function renderStats(year) {
   const isComic = b => (b.formats||[]).includes('COMIC') || b.isComic;
   const fmt = n => n.toLocaleString();
 
-  // Count each read entry separately (re-reads count once per year they appear)
-  const allEntries = [];
-  books.forEach(b => {
+  // Count unique books read in the period (matches grid filter logic)
+  const allEntries = books.filter(b => {
     const dates = b.readDates || (b.dateRead ? [b.dateRead] : []);
-    const hits = isAllTime ? dates.filter(Boolean) : dates.filter(d => d && d.startsWith(String(year)));
-    hits.forEach(() => allEntries.push(b));
+    return isAllTime ? dates.some(Boolean) : dates.some(d => d && d.startsWith(String(year)));
   });
   const booksOnly   = allEntries.filter(b => !isComic(b));
   const comicsCount = allEntries.length - booksOnly.length;
