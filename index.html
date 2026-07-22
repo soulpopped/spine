@@ -315,6 +315,12 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
 .stats-card-foot{font-size:.72rem;color:var(--text-dim);margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
 .stats-period-link{font-size:.72rem;text-transform:uppercase;letter-spacing:.14em;color:var(--accent);margin-bottom:18px;cursor:pointer;display:inline-block;opacity:.75;transition:opacity .15s}
 .stats-period-link:hover{opacity:1;text-decoration:underline}
+.read-date-row{display:flex;gap:6px;margin-bottom:6px;align-items:center}
+.read-date-row input{flex:1}
+.read-date-rm{background:none;border:1px solid var(--border);color:var(--text-muted);cursor:pointer;padding:4px 9px;border-radius:2px;font-size:.8rem;font-family:inherit;transition:all .15s;flex-shrink:0}
+.read-date-rm:hover{border-color:#ef4444;color:#ef4444}
+.add-read-date-btn{background:none;border:none;color:var(--accent);cursor:pointer;font-family:inherit;font-size:.72rem;letter-spacing:.06em;padding:2px 0;margin-top:2px;transition:opacity .15s}
+.add-read-date-btn:hover{opacity:.7}
 
 /* MARK READ DATE MODAL */
 #mark-date-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:600;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(4px)}
@@ -525,7 +531,11 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       <div class="form-group"><label>Publisher</label><input type="text" id="fix-publisher"></div>
       <div class="form-group"><label>Year Published</label><input type="number" id="fix-year" min="1000" max="2099"></div>
       <div class="form-group"><label>Pages</label><input type="number" id="fix-pages" min="1"></div>
-      <div class="form-group"><label style="display:flex;align-items:center;gap:8px">Date Read <button type="button" onclick="document.getElementById('fix-date-read').value=''" style="font-size:.62rem;color:var(--text-dim);background:none;border:none;cursor:pointer;padding:0;font-family:inherit;letter-spacing:.04em;transition:color .15s" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">Clear</button></label><input type="date" id="fix-date-read"></div>
+      <div class="form-group full">
+        <label>Dates Read</label>
+        <div id="fix-read-dates-list"></div>
+        <button type="button" class="add-read-date-btn" onclick="addReadDateRow('')">+ Add read date</button>
+      </div>
       <div class="form-group"><label>ISBN-13</label><input type="text" id="fix-isbn"></div>
       <div class="form-group"><label>Series</label><input type="text" id="fix-series" placeholder="e.g. Hitchhiker's Guide"></div>
       <div class="form-group"><label>Series Position</label><input type="number" id="fix-series-pos" min="1" step="0.5"></div>
@@ -862,8 +872,16 @@ async function loadAllBooks() {
   (sRows||[]).forEach(r => statusMap.set(r.book_id, r.status));
   books = (bRows||[]).map(r => {
     const b = {...r.data, id:r.id};
-    if (b.dateRead) b.dateRead = normDate(b.dateRead);
+    if (b.dateRead)  b.dateRead  = normDate(b.dateRead);
     if (b.dateAdded) b.dateAdded = normDate(b.dateAdded);
+    // Migrate: build readDates array from existing dateRead if not yet stored
+    if (!b.readDates || !Array.isArray(b.readDates)) {
+      b.readDates = b.dateRead ? [b.dateRead] : [];
+    } else {
+      b.readDates = b.readDates.map(normDate).filter(Boolean).sort();
+    }
+    // Keep dateRead in sync with most recent entry
+    if (b.readDates.length) b.dateRead = b.readDates[b.readDates.length - 1];
     return b;
   });
   return books;
@@ -1190,8 +1208,9 @@ function hideProgress() { document.getElementById('progress-overlay').classList.
 function buildYearReadOptions() {
   const years = new Set();
   books.forEach(b => {
-    const d = b.dateRead;
-    if (d) { const y = parseInt(d.slice(0,4)); if (y > 1900) years.add(y); }
+    (b.readDates || (b.dateRead ? [b.dateRead] : [])).forEach(d => {
+      if (d) { const y = parseInt(d.slice(0,4)); if (y > 1900) years.add(y); }
+    });
   });
   const sel = document.getElementById('year-read-filter');
   const existing = [...sel.options].map(o=>o.value).filter(v=>v);
@@ -1292,10 +1311,11 @@ function applyFilters() {
     }
     // Rating
     if (minRating && (b.rating||0) < minRating) return false;
-    // Year read
-    if (yearRead && b.dateRead) {
-      if (!b.dateRead.startsWith(yearRead)) return false;
-    } else if (yearRead && !b.dateRead) return false;
+    // Year read — matches if any entry in readDates falls in the selected year
+    if (yearRead) {
+      const dates = b.readDates || (b.dateRead ? [b.dateRead] : []);
+      if (!dates.some(d => d && d.startsWith(yearRead))) return false;
+    }
     // Decade (by year published)
     if (selectedDecades.size > 0) {
       const yr = b.yearPublished;
@@ -1369,7 +1389,9 @@ function openStatsModal() {
   // Collect years that have reads
   const years = new Set();
   books.forEach(b => {
-    if (b.dateRead) { const y = parseInt(b.dateRead.slice(0,4)); if (y > 1900) years.add(y); }
+    (b.readDates || (b.dateRead ? [b.dateRead] : [])).forEach(d => {
+      if (d) { const y = parseInt(d.slice(0,4)); if (y > 1900) years.add(y); }
+    });
   });
   const sorted = [...years].sort((a,b) => b-a);
   sel.innerHTML = '<option value="all">All Time</option>';
@@ -1389,14 +1411,18 @@ function renderStats(year) {
   const isComic = b => (b.formats||[]).includes('COMIC') || b.isComic;
   const fmt = n => n.toLocaleString();
 
-  const readBooks = books.filter(b =>
-    b.dateRead && (isAllTime || b.dateRead.startsWith(String(year)))
-  );
-  const booksOnly = readBooks.filter(b => !isComic(b));
-  const comicsCount = readBooks.length - booksOnly.length;
+  // Count each read entry separately (re-reads count once per year they appear)
+  const allEntries = [];
+  books.forEach(b => {
+    const dates = b.readDates || (b.dateRead ? [b.dateRead] : []);
+    const hits = isAllTime ? dates.filter(Boolean) : dates.filter(d => d && d.startsWith(String(year)));
+    hits.forEach(() => allEntries.push(b));
+  });
+  const booksOnly   = allEntries.filter(b => !isComic(b));
+  const comicsCount = allEntries.length - booksOnly.length;
 
-  const allCount  = readBooks.length;
-  const allPages  = readBooks.reduce((s,b) => s+(b.pages||0), 0);
+  const allCount  = allEntries.length;
+  const allPages  = allEntries.reduce((s,b) => s+(b.pages||0), 0);
   const bookCount = booksOnly.length;
   const bookPages = booksOnly.reduce((s,b) => s+(b.pages||0), 0);
   const avgAll    = allCount  ? Math.round(allPages/allCount)  : 0;
@@ -1915,7 +1941,12 @@ async function quickMarkRead(e, id, dateOverride) {
   if (e) { e.stopPropagation(); if (e.target) e.target.textContent = '✓ Saved'; }
   statusMap.set(id, 'read');
   const book = books.find(b=>String(b.id)===String(id));
-  if (book) book.dateRead = dateOverride || book.dateRead || new Date().toISOString().slice(0,10);
+  if (book) {
+    const newDate = normDate(dateOverride || new Date().toISOString().slice(0,10));
+    const existing = Array.isArray(book.readDates) ? book.readDates : (book.dateRead ? [book.dateRead] : []);
+    book.readDates = [...new Set([...existing, newDate])].sort();
+    book.dateRead  = book.readDates[book.readDates.length - 1];
+  }
   try {
     await sbSetStatus(id, 'read');
     if (book) await sbSaveBook(book);
@@ -1926,6 +1957,28 @@ async function quickMarkRead(e, id, dateOverride) {
     statusMap.set(id, 'unread');
     applyFilters();
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// READ DATE LIST (fix modal)
+// ═══════════════════════════════════════════════════════════════
+function addReadDateRow(val) {
+  const list = document.getElementById('fix-read-dates-list');
+  const row = document.createElement('div');
+  row.className = 'read-date-row';
+  const inp = document.createElement('input');
+  inp.type = 'text';
+  inp.placeholder = 'YYYY-MM-DD';
+  inp.value = val || '';
+  const rm = document.createElement('button');
+  rm.type = 'button';
+  rm.className = 'read-date-rm';
+  rm.textContent = '✕';
+  rm.onclick = () => row.remove();
+  row.appendChild(inp);
+  row.appendChild(rm);
+  list.appendChild(row);
+  if (!val) inp.focus();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1975,7 +2028,11 @@ function openFixModal(id) {
   document.getElementById('fix-author').value = book.author || '';
   document.getElementById('fix-year').value = book.yearPublished || '';
   document.getElementById('fix-pages').value = book.pages || '';
-  document.getElementById('fix-date-read').value = (book.dateRead||'').slice(0,10);
+  const rdList = document.getElementById('fix-read-dates-list');
+  rdList.innerHTML = '';
+  const rdDates = book.readDates?.length ? book.readDates : (book.dateRead ? [book.dateRead] : []);
+  rdDates.forEach(d => addReadDateRow(d));
+  if (!rdDates.length) addReadDateRow('');
   document.getElementById('fix-isbn').value = book.isbn13 || '';
   document.getElementById('fix-series').value = book.series || '';
   document.getElementById('fix-series-pos').value = book.seriesPosition || '';
@@ -2047,7 +2104,10 @@ async function saveFixModal() {
   book.author      = document.getElementById('fix-author').value.trim();
   book.yearPublished = parseInt(document.getElementById('fix-year').value)||book.yearPublished||null;
   book.pages       = parseInt(document.getElementById('fix-pages').value)||book.pages||null;
-  book.dateRead    = document.getElementById('fix-date-read').value.trim() || null;
+  const rdDates = [...document.querySelectorAll('#fix-read-dates-list input')]
+    .map(i => normDate(i.value.trim())).filter(Boolean).sort();
+  book.readDates = rdDates.length ? rdDates : [];
+  book.dateRead  = rdDates.length ? rdDates[rdDates.length - 1] : null;
   book.isbn13      = document.getElementById('fix-isbn').value.trim()||book.isbn13||'';
   book.series      = document.getElementById('fix-series').value.trim()||null;
   book.seriesPosition = parseFloat(document.getElementById('fix-series-pos').value)||null;
