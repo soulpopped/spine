@@ -186,7 +186,11 @@ body.public-mode .card-fix-btn,body.public-mode .card-read-btn,body.public-mode 
 #detail-rating .star{font-size:1rem;color:var(--accent);opacity:.25}
 #detail-rating .star.lit{opacity:1}
 #detail-description{font-size:.88rem;line-height:1.65;color:var(--text-dim);margin-bottom:18px;max-height:320px;overflow-y:auto}
-#detail-genres{font-size:.7rem;color:var(--text-muted);margin-bottom:16px}
+#detail-genres{display:none}
+#detail-dates-read{font-size:.8rem;color:var(--text-muted);margin-bottom:10px;line-height:1.6}
+#detail-publisher{font-size:.72rem;color:var(--text-dim);margin-bottom:14px}
+.detail-fiction-pill{font-size:.58rem;font-weight:700;letter-spacing:.1em;padding:2px 8px;border-radius:2px;text-transform:uppercase;background:rgba(80,200,120,.12);border:1px solid rgba(80,200,120,.35);color:#50c878}
+.detail-nonfiction-pill{background:rgba(100,160,240,.12);border:1px solid rgba(100,160,240,.35);color:#64a0f0}
 #detail-footer{display:flex;gap:8px;align-items:center}
 #detail-edit-btn{background:var(--accent);color:#000;border:none;border-radius:2px;padding:7px 16px;font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;font-family:inherit}
 #detail-edit-btn:hover{opacity:.85}
@@ -477,8 +481,10 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <div id="detail-author"></div>
         <div id="detail-meta-row"></div>
         <div id="detail-rating"></div>
+        <div id="detail-dates-read" style="display:none"></div>
+        <div id="detail-publisher" style="display:none"></div>
         <div id="detail-description"><span id="detail-description-loading"></span></div>
-        <div id="detail-genres"></div>
+        <div id="detail-genres" style="display:none"></div>
         <div id="detail-footer">
           <button id="detail-edit-btn" onclick="detailToEdit()" style="display:none">✎ Edit</button>
           <button id="detail-read-btn" onclick="detailMarkRead()" style="display:none">✓ Mark Read</button>
@@ -1598,12 +1604,37 @@ function openDetailModal(id) {
   if (book.yearPublished) metaHTML += `<span id="detail-year">${book.yearPublished}</span>`;
   if (book.pages) metaHTML += `<span class="detail-pages-span">${book.pages} pp</span>`;
   if (book.audioLength) metaHTML += `<span class="detail-pages-span">🎧 ${formatAudioLen(book.audioLength)}</span>`;
+  if (book.fiction === true) metaHTML += `<span class="detail-fiction-pill">Fiction</span>`;
+  else if (book.fiction === false) metaHTML += `<span class="detail-nonfiction-pill">Non-Fiction</span>`;
   document.getElementById('detail-meta-row').innerHTML = metaHTML;
 
   // Rating stars
   const rating = book.rating || 0;
   document.getElementById('detail-rating').innerHTML = [1,2,3,4,5]
     .map(i => `<span class="star${i<=rating?' lit':''}">★</span>`).join('');
+
+  // Dates read
+  const datesReadEl = document.getElementById('detail-dates-read');
+  const rdDates = book.readDates?.length ? book.readDates : (book.dateRead ? [book.dateRead] : []);
+  if (rdDates.length) {
+    const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const fmtD = d => { const p = String(d).split('-'); return p.length===3 ? `${mo[+p[1]-1]} ${+p[2]}, ${p[0]}` : d; };
+    datesReadEl.textContent = 'Read ' + rdDates.map(fmtD).join(' · ');
+    datesReadEl.style.display = '';
+  } else {
+    datesReadEl.textContent = '';
+    datesReadEl.style.display = 'none';
+  }
+
+  // Publisher
+  const publisherEl = document.getElementById('detail-publisher');
+  if (book.publisher) {
+    publisherEl.textContent = book.publisher;
+    publisherEl.style.display = '';
+  } else {
+    publisherEl.textContent = '';
+    publisherEl.style.display = 'none';
+  }
 
   // Description — show what we have, then try to fetch if missing
   const descEl = document.getElementById('detail-description');
@@ -1615,10 +1646,8 @@ function openDetailModal(id) {
     fetchDescriptionForDetail(book);
   }
 
-  // Genres
-  const genresEl = document.getElementById('detail-genres');
-  genresEl.textContent = (book.genres||[]).join(' · ');
-  genresEl.style.display = (book.genres||[]).length ? '' : 'none';
+  // Genres (hidden via CSS — keep data updated for future use)
+  document.getElementById('detail-genres').textContent = (book.genres||[]).join(' · ');
 
   // Buttons
   document.getElementById('detail-edit-btn').style.display = READ_ONLY ? 'none' : '';
@@ -1649,7 +1678,6 @@ async function fetchDescriptionForDetail(book) {
           const genresEl = document.getElementById('detail-genres');
           if (genresEl && String(book.id) === detailBookId) {
             genresEl.textContent = subjects.join(' · ');
-            genresEl.style.display = '';
           }
         }
         if (desc || subjects.length) {
