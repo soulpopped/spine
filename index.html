@@ -21,7 +21,7 @@
   --accent:#e8c87a;--accent-dim:rgba(232,200,122,.12);
   --danger:#c0392b;
   --s-reading:#e8c87a;--s-read:#60a5fa;--s-reread:#c084fc;
-  --header-height:130px;--safe-top:env(safe-area-inset-top,0px);
+  --header-height:145px;--safe-top:env(safe-area-inset-top,0px);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;-webkit-font-smoothing:antialiased}
@@ -83,11 +83,16 @@ label{display:block;font-size:.7rem;color:var(--text-dim);margin-bottom:5px;text
 /* header-row2 = slim status pills + format toggles */
 .header-row2{display:flex;gap:5px;align-items:center;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .header-row2::-webkit-scrollbar{display:none}
+/* sort bar (row 3 of header) */
+.header-row3{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:5px;border-top:1px solid var(--border);min-height:24px}
+#header-stats{font-size:.72rem;color:var(--text-dim);letter-spacing:.04em;white-space:nowrap}
+.sort-bar-right{display:flex;align-items:center;gap:7px}
+.sort-bar-label{font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);opacity:.45;flex-shrink:0}
 /* sort buttons */
 .sort-btns{display:flex;gap:3px;flex-shrink:0}
-.sort-btn{padding:4px 9px;border:1px solid var(--border);border-radius:2px;font-size:.65rem;letter-spacing:.07em;text-transform:uppercase;color:var(--text-dim);cursor:pointer;background:none;font-family:inherit;transition:all .15s;white-space:nowrap}
-.sort-btn:hover{border-color:var(--text-muted);color:var(--text-muted)}
-.sort-btn.active{background:var(--surface2);border-color:var(--accent);color:var(--accent)}
+.sort-btn{padding:3px 9px;border:1px solid transparent;border-radius:2px;font-size:.65rem;letter-spacing:.07em;text-transform:uppercase;color:var(--text-dim);cursor:pointer;background:none;font-family:inherit;transition:all .15s;white-space:nowrap}
+.sort-btn:hover{color:var(--text-muted)}
+.sort-btn.active{border-color:var(--accent);color:var(--accent)}
 .header-select{padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--text-muted);font-family:inherit;font-size:.75rem;outline:none;cursor:pointer;flex-shrink:0}
 /* STATUS PILLS */
 .status-pills{display:flex;gap:4px;align-items:center;flex-wrap:nowrap}
@@ -389,7 +394,6 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
 <div id="main-header">
   <div class="header-row1">
     <span class="app-title" onclick="resetAllFilters()">SPINE</span>
-    <span class="header-stats" id="header-stats"></span>
     <div class="header-btns">
       <button class="icon-btn" onclick="openStatsModal()">📊 Stats</button>
       <button class="icon-btn" id="random-btn" onclick="pickRandom()">📖 What to Read?</button>
@@ -416,8 +420,8 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       <option value="4">★★★★+</option>
       <option value="3">★★★+</option>
     </select>
-    <select class="header-select" id="fiction-filter-select" onchange="setFictionFilter(this.value)" style="max-width:110px">
-      <option value="">Fiction</option>
+    <select class="header-select" id="fiction-filter-select" onchange="setFictionFilter(this.value)" style="max-width:90px">
+      <option value="">Type</option>
       <option value="fiction">Fiction</option>
       <option value="nonfiction">Non-Fiction</option>
       <option value="nodata">No Data</option>
@@ -454,14 +458,6 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <div class="decade-opt"><input type="checkbox" value="2020" onchange="applyDecades()"><span>2020s</span></div>
       </div>
     </div>
-    <div class="filter-sep"></div>
-    <div class="sort-btns">
-      <button class="sort-btn active" data-sort="title" onclick="setSortOrder('title',this)">Title</button>
-      <button class="sort-btn" data-sort="author" onclick="setSortOrder('author',this)">Author</button>
-      <button class="sort-btn" data-sort="dateAdded" onclick="setSortOrder('dateAdded',this)">Added</button>
-      <button class="sort-btn" data-sort="dateRead" onclick="setSortOrder('dateRead',this)">Read</button>
-      <button class="sort-btn" data-sort="pages" onclick="setSortOrder('pages',this)">Pages</button>
-    </div>
   </div>
   <!-- Row 2: status pills + format toggles -->
   <div class="header-row2" id="filter-strip">
@@ -480,6 +476,20 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     <button class="fmt-toggle" data-fmt="BOOK" onclick="toggleFormatFilter('BOOK',this)">BOOK</button>
     <button class="fmt-toggle" data-fmt="AUDIO" onclick="toggleFormatFilter('AUDIO',this)">AUDIO</button>
     <button class="fmt-toggle" data-fmt="COMIC" onclick="toggleFormatFilter('COMIC',this)">COMIC</button>
+  </div>
+  <!-- Row 3: count + sort -->
+  <div class="header-row3">
+    <span id="header-stats"></span>
+    <div class="sort-bar-right">
+      <span class="sort-bar-label">Sort</span>
+      <div class="sort-btns">
+        <button class="sort-btn active" data-sort="title" onclick="setSortOrder('title',this)">Title</button>
+        <button class="sort-btn" data-sort="author" onclick="setSortOrder('author',this)">Author</button>
+        <button class="sort-btn" data-sort="dateAdded" onclick="setSortOrder('dateAdded',this)">Added</button>
+        <button class="sort-btn" data-sort="dateRead" onclick="setSortOrder('dateRead',this)">Read</button>
+        <button class="sort-btn" data-sort="pages" onclick="setSortOrder('pages',this)">Pages</button>
+      </div>
+    </div>
   </div>
   <!-- Hidden sort select — preserves backward-compat with any JS that reads/writes it -->
   <select id="sort-select" style="display:none">
@@ -1478,7 +1488,9 @@ function updateStats() {
   const pills = document.querySelectorAll('.status-pill');
   const labels = {all:`All ${total}`,unread:`Unread ${counts.unread}`,reading:`Reading ${counts.reading}`,read:`Read ${counts.read}`,reread:`Re-read ${counts.reread}`};
   pills.forEach(p => { if(labels[p.dataset.status]) p.textContent=labels[p.dataset.status]; });
-  document.getElementById('header-stats').textContent = filteredBooks.length !== total ? `${filteredBooks.length} of ${total}` : '';
+  const shown = filteredBooks.length;
+  const noun = shown === 1 ? 'book' : 'books';
+  document.getElementById('header-stats').textContent = shown === total ? `Showing all ${total} ${noun}` : `Showing ${shown} of ${total} ${noun}`;
 }
 
 // ═══════════════════════════════════════════════════════════════
