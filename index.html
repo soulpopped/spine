@@ -74,7 +74,7 @@ label{display:block;font-size:.7rem;color:var(--text-dim);margin-bottom:5px;text
 .header-row1{display:flex;align-items:center;gap:10px}
 .app-title{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:.18em;color:var(--accent);cursor:pointer;flex-shrink:0;line-height:1;user-select:none}
 .header-stats{font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);flex:1}
-.header-btns{display:flex;gap:6px;align-items:center}
+.header-btns{display:flex;gap:6px;align-items:center;margin-left:auto}
 .icon-btn{background:none;border:1px solid var(--border);border-radius:2px;color:var(--text-muted);cursor:pointer;padding:7px 14px;font-size:.82rem;transition:all .15s;white-space:nowrap;font-family:inherit}
 .icon-btn:hover{border-color:var(--text-muted);color:var(--text)}
 /* header-row1b = search + secondary filters + sort buttons */
@@ -483,11 +483,11 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     <div class="sort-bar-right">
       <span class="sort-bar-label">Sort</span>
       <div class="sort-btns">
-        <button class="sort-btn active" data-sort="title" onclick="setSortOrder('title',this)">Title</button>
-        <button class="sort-btn" data-sort="author" onclick="setSortOrder('author',this)">Author</button>
-        <button class="sort-btn" data-sort="dateAdded" onclick="setSortOrder('dateAdded',this)">Added</button>
-        <button class="sort-btn" data-sort="dateRead" onclick="setSortOrder('dateRead',this)">Read</button>
-        <button class="sort-btn" data-sort="pages" onclick="setSortOrder('pages',this)">Pages</button>
+        <button class="sort-btn active" data-sort="title" data-label="Title" onclick="setSortOrder('title',this)">Title ↑</button>
+        <button class="sort-btn" data-sort="author" data-label="Author" onclick="setSortOrder('author',this)">Author</button>
+        <button class="sort-btn" data-sort="dateAdded" data-label="Added" onclick="setSortOrder('dateAdded',this)">Added</button>
+        <button class="sort-btn" data-sort="dateRead" data-label="Read" onclick="setSortOrder('dateRead',this)">Read</button>
+        <button class="sort-btn" data-sort="pages" data-label="Pages" onclick="setSortOrder('pages',this)">Pages</button>
       </div>
     </div>
   </div>
@@ -919,6 +919,7 @@ let manFormats   = new Set();
 let selectedDecades = new Set();
 let selectedSeries = null;
 let selectedFictionFilter = '';
+let sortDir = 'asc'; // 'asc' | 'desc'
 let fixFictionVal = null;
 let rateTargetId = null;
 let rateVal = 0;
@@ -1425,14 +1426,17 @@ function applyFilters() {
 
   // Sort
   filteredBooks.sort((a,b) => {
-    if (sortOrder==='title') return sortTitle(a.sortTitle || a.displayTitle || a.title).localeCompare(sortTitle(b.sortTitle || b.displayTitle || b.title));
-    if (sortOrder==='author') return authorSortKey(a.author).localeCompare(authorSortKey(b.author));
-    if (sortOrder==='dateAdded') return (b.dateAdded||'0001-01-01').localeCompare(a.dateAdded||'0001-01-01');
-    if (sortOrder==='dateRead') return (b.dateRead||'').localeCompare(a.dateRead||'');
-    if (sortOrder==='rating') return (b.rating||0)-(a.rating||0);
-    if (sortOrder==='pages') return (b.pages||0)-(a.pages||0);
+    // seriesPosition always ascending — not user-togglable
     if (sortOrder==='seriesPosition') return (a.seriesPosition??999)-(b.seriesPosition??999);
-    return 0;
+    // All other sorts: normalize to ascending, then apply sortDir
+    let cmp = 0;
+    if (sortOrder==='title') cmp = sortTitle(a.sortTitle||a.displayTitle||a.title).localeCompare(sortTitle(b.sortTitle||b.displayTitle||b.title));
+    else if (sortOrder==='author') cmp = authorSortKey(a.author).localeCompare(authorSortKey(b.author));
+    else if (sortOrder==='dateAdded') cmp = (a.dateAdded||'0001-01-01').localeCompare(b.dateAdded||'0001-01-01');
+    else if (sortOrder==='dateRead') cmp = (a.dateRead||'').localeCompare(b.dateRead||'');
+    else if (sortOrder==='rating') cmp = (a.rating||0)-(b.rating||0);
+    else if (sortOrder==='pages') cmp = (a.pages||0)-(b.pages||0);
+    return sortDir === 'desc' ? -cmp : cmp;
   });
 
   renderGrid();
@@ -1453,7 +1457,7 @@ function resetAllFilters() {
   document.getElementById('rating-filter-select').value='';
   document.getElementById('year-read-filter').value='';
   document.getElementById('year-read-filter').style.display='none';
-  syncSortUI('title');
+  sortDir = 'asc'; syncSortUI('title');
   document.querySelectorAll('#decade-popup input[type=checkbox]').forEach(c=>c.checked=false);
   document.getElementById('decade-btn').classList.remove('has-selection');
   selectedSeries = null;
@@ -1466,12 +1470,25 @@ function resetAllFilters() {
 
 function syncSortUI(val) {
   sortOrder = val;
-  document.querySelectorAll('.sort-btn').forEach(b => b.classList.toggle('active', b.dataset.sort === val));
+  document.querySelectorAll('.sort-btn').forEach(b => {
+    const isActive = b.dataset.sort === val;
+    b.classList.toggle('active', isActive);
+    const label = b.dataset.label;
+    b.textContent = isActive ? `${label} ${sortDir === 'asc' ? '↑' : '↓'}` : label;
+  });
   const sel = document.getElementById('sort-select');
   if (sel) sel.value = val;
 }
 
+// Default sort direction per field (applied when switching to a new field)
+const SORT_DEFAULTS = {title:'asc', author:'asc', dateAdded:'desc', dateRead:'desc', rating:'desc', pages:'desc'};
+
 function setSortOrder(val, btn) {
+  if (sortOrder === val) {
+    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortDir = SORT_DEFAULTS[val] || 'asc';
+  }
   syncSortUI(val);
   applyFilters();
 }
