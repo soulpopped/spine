@@ -3333,6 +3333,9 @@ function filterBySeries(name) {
   } else {
     selectedSeries = name;
     syncSortUI('seriesPosition'); // no button will be active — that's intentional
+    // Clear text searches so the full series shows
+    document.getElementById('title-search').value = '';
+    document.getElementById('author-search').value = '';
   }
   applyFilters();
 }
