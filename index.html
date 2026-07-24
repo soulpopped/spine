@@ -185,7 +185,7 @@ body.public-mode .card-fix-btn,body.public-mode .card-read-btn,body.public-mode 
 #detail-rating{display:flex;gap:2px;margin-bottom:14px}
 #detail-rating .star{font-size:1rem;color:var(--accent);opacity:.25}
 #detail-rating .star.lit{opacity:1}
-#detail-description{font-size:.88rem;line-height:1.65;color:var(--text-dim);margin-bottom:18px;max-height:320px;overflow-y:auto}
+#detail-description{font-size:.88rem;line-height:1.65;color:var(--text-dim);margin-bottom:18px;max-height:320px;overflow-y:auto;white-space:pre-line}
 #detail-genres{display:none}
 #detail-dates-read{font-size:.8rem;color:var(--text-muted);margin-bottom:10px;line-height:1.6}
 #detail-publisher{font-size:.72rem;color:var(--text-dim);margin-bottom:14px}
@@ -1389,6 +1389,7 @@ function applyFilters() {
     if (sortOrder==='dateRead') return (b.dateRead||'').localeCompare(a.dateRead||'');
     if (sortOrder==='rating') return (b.rating||0)-(a.rating||0);
     if (sortOrder==='pages') return (b.pages||0)-(a.pages||0);
+    if (sortOrder==='seriesPosition') return (a.seriesPosition??999)-(b.seriesPosition??999);
     return 0;
   });
 
@@ -1645,8 +1646,8 @@ function openDetailModal(id) {
   if (book.yearPublished) metaHTML += `<span id="detail-year">${book.yearPublished}</span>`;
   if (book.pages) metaHTML += `<span class="detail-pages-span">${book.pages} pp</span>`;
   if (book.audioLength) metaHTML += `<span class="detail-pages-span">🎧 ${formatAudioLen(book.audioLength)}</span>`;
-  if (book.fiction === true) metaHTML += `<span class="detail-fiction-pill">Fiction</span>`;
-  else if (book.fiction === false) metaHTML += `<span class="detail-nonfiction-pill">Non-Fiction</span>`;
+  if (book.fictionStatus === 'fiction') metaHTML += `<span class="detail-fiction-pill">Fiction</span>`;
+  else if (book.fictionStatus === 'nonfiction') metaHTML += `<span class="detail-nonfiction-pill">Non-Fiction</span>`;
   document.getElementById('detail-meta-row').innerHTML = metaHTML;
 
   // Rating stars
@@ -1681,7 +1682,7 @@ function openDetailModal(id) {
   const descEl = document.getElementById('detail-description');
   const loadingEl = document.getElementById('detail-description-loading');
   if (book.description) {
-    descEl.textContent = book.description;
+    descEl.textContent = cleanDesc(book.description);
   } else {
     descEl.innerHTML = `<span id="detail-description-loading" style="color:var(--text-muted);font-style:italic">Loading description…</span>`;
     fetchDescriptionForDetail(book);
@@ -1711,7 +1712,7 @@ async function fetchDescriptionForDetail(book) {
         const subjects = (entry.subjects||[]).map(s=>typeof s==='string'?s:s.name).slice(0,5);
         if (desc && String(book.id) === detailBookId) {
           const descEl = document.getElementById('detail-description');
-          if (descEl) descEl.textContent = desc;
+          if (descEl) descEl.textContent = cleanDesc(desc);
           book.description = desc;
         }
         if (subjects.length && !book.genres?.length) {
@@ -1740,13 +1741,21 @@ async function fetchDescriptionForDetail(book) {
   }
   if (gb?.description && String(book.id) === detailBookId) {
     const descEl = document.getElementById('detail-description');
-    if (descEl) descEl.textContent = gb.description;
+    if (descEl) descEl.textContent = cleanDesc(gb.description);
     book.description = gb.description;
     try { await sbSaveBook(book); } catch(e) {}
   } else if (String(book.id) === detailBookId) {
     const descEl = document.getElementById('detail-description');
     if (descEl) descEl.innerHTML = '<span style="color:var(--text-muted);font-style:italic">No description available.</span>';
   }
+}
+
+function cleanDesc(text) {
+  if (!text) return '';
+  return text
+    .replace(/<\/p\s*>/gi, '\n\n').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'")
+    .replace(/\n{3,}/g, '\n\n').trim();
 }
 
 function closeDetailModal() {
@@ -3063,7 +3072,10 @@ async function saveBulkEdit() {
   const toUpdate = books.filter(b=>selectedIds.has(String(b.id)));
   if (!toUpdate.length) { alert('Nothing selected.'); return; }
 
-  if (fmtVal) toUpdate.forEach(b=>{ b.formats=[fmtVal]; });
+  if (fmtVal) toUpdate.forEach(b=>{
+    if (fmtVal === 'COMIC') { b.isComic = true; }
+    else { b.formats = [...new Set([...(b.formats||[]), fmtVal])]; }
+  });
   if (fictionVal) {
     const setVal = fictionVal === 'clear' ? null : fictionVal;
     toUpdate.forEach(b=>{ b.fictionStatus = setVal; });
@@ -3182,8 +3194,10 @@ async function selectRateStar(val) {
 function filterBySeries(name) {
   if (selectedSeries === name) {
     selectedSeries = null;
+    sortOrder = 'title';
   } else {
     selectedSeries = name;
+    sortOrder = 'seriesPosition';
   }
   applyFilters();
 }
