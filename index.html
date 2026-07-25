@@ -167,10 +167,12 @@ label{display:block;font-size:.7rem;color:var(--text-dim);margin-bottom:5px;text
 .fiction-pill.active-fiction{background:rgba(80,200,120,.15);border-color:#50c878;color:#50c878}
 .fiction-pill.active-nonfiction{background:rgba(100,160,240,.15);border-color:#64a0f0;color:#64a0f0}
 .fiction-pill.active-nodata{background:rgba(150,150,150,.15);border-color:#888;color:#aaa}
+.fiction-pill.active-kids{background:rgba(244,114,182,.15);border-color:#f472b6;color:#f472b6}
 /* fiction chips in fix modal */
 .fiction-chip{padding:4px 10px;border:1px solid var(--border);border-radius:2px;font-size:.68rem;font-weight:700;letter-spacing:.06em;cursor:pointer;background:none;font-family:inherit;transition:all .15s;color:var(--text-dim)}
 .fiction-chip.active-fiction{background:rgba(80,200,120,.15);border-color:#50c878;color:#50c878}
 .fiction-chip.active-nonfiction{background:rgba(100,160,240,.15);border-color:#64a0f0;color:#64a0f0}
+.fiction-chip.active-kids{background:rgba(244,114,182,.15);border-color:#f472b6;color:#f472b6}
 .not-found-card .book-cover-placeholder{opacity:.4}
 .empty-state{text-align:center;padding:80px 24px;color:var(--text-dim);grid-column:1/-1}
 .empty-state h2{font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:.1em;margin-bottom:8px}
@@ -204,6 +206,7 @@ body.public-mode .card-fix-btn,body.public-mode .card-read-btn,body.public-mode 
 #detail-publisher{font-size:.72rem;color:var(--text-dim);margin-bottom:14px}
 .detail-fiction-pill{font-size:.58rem;font-weight:700;letter-spacing:.1em;padding:2px 8px;border-radius:2px;text-transform:uppercase;background:rgba(80,200,120,.12);border:1px solid rgba(80,200,120,.35);color:#50c878}
 .detail-nonfiction-pill{background:rgba(100,160,240,.12);border:1px solid rgba(100,160,240,.35);color:#64a0f0}
+.detail-kids-pill{background:rgba(244,114,182,.12);border:1px solid rgba(244,114,182,.35);color:#f472b6}
 #detail-footer{display:flex;gap:8px;align-items:center}
 #detail-edit-btn{background:var(--accent);color:#000;border:none;border-radius:2px;padding:7px 16px;font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;font-family:inherit}
 #detail-edit-btn:hover{opacity:.85}
@@ -424,6 +427,7 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       <option value="">Type</option>
       <option value="fiction">Fiction</option>
       <option value="nonfiction">Non-Fiction</option>
+      <option value="kids">Kids</option>
       <option value="nodata">No Data</option>
     </select>
     <!-- genre hidden — values stored but filter deprioritised -->
@@ -567,6 +571,7 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     <div class="format-chips" id="fix-fiction-chips">
       <button class="fiction-chip" id="fix-fc-fiction" onclick="setFictionStatus('fiction')">Fiction</button>
       <button class="fiction-chip" id="fix-fc-nonfiction" onclick="setFictionStatus('nonfiction')">Non-Fiction</button>
+      <button class="fiction-chip" id="fix-fc-kids" onclick="setFictionStatus('kids')">Kids</button>
       <button class="fiction-chip" id="fix-fc-unknown" onclick="setFictionStatus(null)">Unknown</button>
     </div>
 
@@ -873,8 +878,8 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
 <!-- MARK READ DATE MODAL -->
 <div id="mark-date-overlay" onclick="if(event.target===this)cancelMarkDate()">
   <div id="mark-date-content">
-    <div class="mark-date-ttl">When did you finish?</div>
-    <div class="mark-date-sub">Set the date you completed this book.</div>
+    <div class="mark-date-ttl">Mark as Read</div>
+    <div class="mark-date-sub">Add a finish date (optional).</div>
     <input type="date" id="mark-date-input" onkeydown="if(event.key==='Enter')confirmMarkDate()">
     <div class="mark-date-btns">
       <button class="btn btn-accent" style="flex:1" onclick="confirmMarkDate()">Mark Read</button>
@@ -1784,6 +1789,7 @@ function openDetailModal(id) {
   if (book.audioLength) metaHTML += `<span class="detail-pages-span">🎧 ${formatAudioLen(book.audioLength)}</span>`;
   if (book.fictionStatus === 'fiction') metaHTML += `<span class="detail-fiction-pill">Fiction</span>`;
   else if (book.fictionStatus === 'nonfiction') metaHTML += `<span class="detail-nonfiction-pill">Non-Fiction</span>`;
+  else if (book.fictionStatus === 'kids') metaHTML += `<span class="detail-fiction-pill detail-kids-pill">Kids</span>`;
   document.getElementById('detail-meta-row').innerHTML = metaHTML;
 
   // Rating stars
@@ -2155,8 +2161,8 @@ async function quickMarkRead(e, id, dateOverride) {
   if (e) { e.stopPropagation(); if (e.target) e.target.textContent = '✓ Saved'; }
   statusMap.set(id, 'read');
   const book = books.find(b=>String(b.id)===String(id));
-  if (book) {
-    const newDate = normDate(dateOverride || new Date().toISOString().slice(0,10));
+  if (book && dateOverride) {
+    const newDate = normDate(dateOverride);
     const existing = Array.isArray(book.readDates) ? book.readDates : (book.dateRead ? [book.dateRead] : []);
     book.readDates = [...new Set([...existing, newDate])].sort();
     book.dateRead  = book.readDates[book.readDates.length - 1];
@@ -2204,7 +2210,7 @@ function openMarkReadModal(id) {
   markDateId = id;
   const today = new Date().toISOString().slice(0,10);
   const inp = document.getElementById('mark-date-input');
-  inp.value = today;
+  inp.value = ''; // blank by default — date is optional
   inp.max = today;
   document.getElementById('mark-date-overlay').classList.add('active');
   setTimeout(() => inp.focus(), 60);
@@ -2215,7 +2221,7 @@ async function confirmMarkDate() {
   if (!id) return;
   const dateVal = document.getElementById('mark-date-input').value;
   cancelMarkDate();
-  await quickMarkRead(null, id, dateVal || new Date().toISOString().slice(0,10));
+  await quickMarkRead(null, id, dateVal || null); // null = no date
   // Refresh detail modal if it's open for this book
   const readBtn = document.getElementById('detail-read-btn');
   if (readBtn && String(detailBookId) === String(id)) readBtn.style.display = 'none';
@@ -3356,7 +3362,7 @@ function toggleFictionFilter(val, btn) {
 
 function setFictionStatus(val) { fixFictionVal = val; highlightFictionStatus(); }
 function highlightFictionStatus() {
-  ['fiction','nonfiction'].forEach(k => {
+  ['fiction','nonfiction','kids'].forEach(k => {
     const btn = document.getElementById('fix-fc-'+k);
     if (btn) btn.className = 'fiction-chip' + (fixFictionVal === k ? ' active-'+k : '');
   });
