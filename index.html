@@ -719,6 +719,18 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       </div>
       <div class="form-group"><label>Series</label><input type="text" id="man-series"></div>
       <div class="form-group"><label>Description</label><textarea id="man-desc" rows="3" style="resize:vertical"></textarea></div>
+      <div class="form-group" style="margin-top:4px">
+        <label>Status</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+          <button class="btn btn-accent" id="man-s-unread" onclick="setAddManStatus('unread')">Unread</button>
+          <button class="btn" id="man-s-read" onclick="setAddManStatus('read')">Read</button>
+        </div>
+        <div id="man-read-dates-wrap" style="display:none;margin-top:10px">
+          <label style="display:block;margin-bottom:6px;font-size:.72rem">Date(s) Read</label>
+          <div id="man-read-dates-list"></div>
+          <button class="btn" onclick="addReadDateRow('man-read-dates-list')" style="font-size:.7rem;padding:4px 10px;margin-top:4px">+ Add date</button>
+        </div>
+      </div>
       <button class="btn btn-accent" onclick="addManualBook()">Add to SPINE</button>
       <div id="man-status" style="font-size:.72rem;color:var(--text-muted);margin-top:8px;min-height:16px"></div>
     </div>
@@ -757,6 +769,18 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
           <button class="format-chip" data-fmt="PHYS" onclick="toggleConfFormat(this)">BOOK</button>
           <button class="format-chip" data-fmt="AUDIO" onclick="toggleConfFormat(this)">AUDIO</button>
           <button class="format-chip" data-fmt="COMIC" onclick="toggleConfFormat(this)">COMIC</button>
+        </div>
+      </div>
+      <div class="form-group full" style="margin-top:12px">
+        <label>Status</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+          <button class="btn btn-accent" id="conf-s-unread" onclick="setAddConfStatus('unread')">Unread</button>
+          <button class="btn" id="conf-s-read" onclick="setAddConfStatus('read')">Read</button>
+        </div>
+        <div id="conf-read-dates-wrap" style="display:none;margin-top:10px">
+          <label style="display:block;margin-bottom:6px;font-size:.72rem">Date(s) Read</label>
+          <div id="conf-read-dates-list"></div>
+          <button class="btn" onclick="addReadDateRow('conf-read-dates-list')" style="font-size:.7rem;padding:4px 10px;margin-top:4px">+ Add date</button>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap">
@@ -912,6 +936,8 @@ let fixTargetId  = null;
 let fixRating    = 0;
 let fixFormats   = new Set();
 let fixStatusVal = 'unread';
+let addConfStatus = 'unread';
+let addManStatus  = 'unread';
 let selectedIds  = new Set();
 let inSelectMode = false;
 let selectedGBBook = null;    // selected result in add modal
@@ -2583,6 +2609,48 @@ async function deleteBook() {
 // ═══════════════════════════════════════════════════════════════
 // ADD BOOK MODAL
 // ═══════════════════════════════════════════════════════════════
+// ADD MODAL — STATUS + DATE HELPERS
+// ═══════════════════════════════════════════════════════════════
+function setAddConfStatus(status) {
+  addConfStatus = status;
+  document.getElementById('conf-s-unread').className = 'btn' + (status==='unread'?' btn-accent':'');
+  document.getElementById('conf-s-read').className   = 'btn' + (status==='read'?' btn-accent':'');
+  const wrap = document.getElementById('conf-read-dates-wrap');
+  wrap.style.display = status==='read' ? '' : 'none';
+  if (status==='read' && !document.getElementById('conf-read-dates-list').children.length)
+    addReadDateRow('conf-read-dates-list');
+}
+function setAddManStatus(status) {
+  addManStatus = status;
+  document.getElementById('man-s-unread').className = 'btn' + (status==='unread'?' btn-accent':'');
+  document.getElementById('man-s-read').className   = 'btn' + (status==='read'?' btn-accent':'');
+  const wrap = document.getElementById('man-read-dates-wrap');
+  wrap.style.display = status==='read' ? '' : 'none';
+  if (status==='read' && !document.getElementById('man-read-dates-list').children.length)
+    addReadDateRow('man-read-dates-list');
+}
+function addReadDateRow(containerId) {
+  const container = document.getElementById(containerId);
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px';
+  const input = document.createElement('input');
+  input.type = 'date';
+  input.className = 'header-select';
+  input.style.cssText = 'padding:4px 8px;font-size:.78rem;flex:1';
+  input.value = '';
+  const rm = document.createElement('button');
+  rm.className = 'btn'; rm.textContent = '✕';
+  rm.style.cssText = 'padding:4px 8px;font-size:.7rem';
+  rm.onclick = () => container.removeChild(row);
+  row.appendChild(input); row.appendChild(rm);
+  container.appendChild(row);
+}
+function getReadDatesFromList(containerId) {
+  return [...document.getElementById(containerId).querySelectorAll('input[type=date]')]
+    .map(i => i.value).filter(Boolean);
+}
+
+// ═══════════════════════════════════════════════════════════════
 function openAddModal() {
   selectedGBBook=null; isbnGBBook=null;
   addFormats.clear(); isbnFormats.clear(); manFormats.clear();
@@ -2600,6 +2668,16 @@ function openAddModal() {
   ['man-title','man-author','man-isbn','man-series','man-desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('man-pages').value='';
   document.getElementById('man-status').textContent='';
+  // Reset status UI
+  addConfStatus = 'unread'; addManStatus = 'unread';
+  document.getElementById('conf-s-unread').className = 'btn btn-accent';
+  document.getElementById('conf-s-read').className   = 'btn';
+  document.getElementById('conf-read-dates-wrap').style.display = 'none';
+  document.getElementById('conf-read-dates-list').innerHTML = '';
+  document.getElementById('man-s-unread').className  = 'btn btn-accent';
+  document.getElementById('man-s-read').className    = 'btn';
+  document.getElementById('man-read-dates-wrap').style.display = 'none';
+  document.getElementById('man-read-dates-list').innerHTML = '';
   document.getElementById('add-confirm-form').style.display='none';
   document.querySelector('#add-content .tab-bar').style.display='';
   document.querySelectorAll('#add-content .tab-pane').forEach(p=>p.style.display='');
@@ -2705,6 +2783,7 @@ async function addConfirmedBook() {
   const isbn13 = isbn13raw.length >= 13 ? isbn13raw : (_confBook?.isbn13 || '');
   const id = makeId(isbn13, '');
   if (books.some(b=>String(b.id)===String(id))) { st.textContent='Already in your SPINE.'; return; }
+  const readDates = addConfStatus === 'read' ? getReadDatesFromList('conf-read-dates-list') : [];
   const book = {
     id, isbn13, asin: '',
     title,
@@ -2721,14 +2800,18 @@ async function addConfirmedBook() {
     publisher:    document.getElementById('conf-publisher').value.trim() || null,
     series:       document.getElementById('conf-series').value.trim() || null,
     seriesPosition: parseFloat(document.getElementById('conf-series-pos').value) || null,
-    rating: null, dateRead: null,
+    rating: null, dateRead: readDates[0] || null, readDates,
     dateAdded: new Date().toISOString().slice(0,10),
   };
   try {
     await sbSaveBook(book);
+    if (addConfStatus !== 'unread') {
+      statusMap.set(String(id), addConfStatus);
+      await sbSetStatus(String(id), addConfStatus);
+    }
     books.unshift(book);
     st.textContent = '✓ Added!';
-    syncSortUI('dateAdded');
+    sortDir = 'desc'; syncSortUI('dateAdded');
     applyFilters(); updateStats();
     setTimeout(closeAddModal, 700);
   } catch(e) { st.textContent = '⚠ ' + e.message; }
@@ -2864,6 +2947,7 @@ async function addManualBook() {
   const isbn = document.getElementById('man-isbn').value.trim().replace(/[^0-9X]/gi,'');
   const id = makeId(isbn.length>=13?isbn:'', '');
   if (books.some(b=>String(b.id)===String(id))) { st.textContent='Already in your SPINE.'; return; }
+  const readDates = addManStatus === 'read' ? getReadDatesFromList('man-read-dates-list') : [];
   const book={
     id, isbn13:isbn.length>=13?isbn:'', asin:'',
     title, author:document.getElementById('man-author').value.trim(),
@@ -2875,12 +2959,18 @@ async function addManualBook() {
     isComic:manFormats.has('COMIC'),
     genres:[], yearPublished:null, publisher:'',
     series:document.getElementById('man-series').value.trim()||null,
-    seriesPosition:null, rating:null, dateRead:null,
+    seriesPosition:null, rating:null, dateRead:readDates[0]||null, readDates,
     dateAdded:new Date().toISOString().slice(0,10),
   };
   try {
-    await sbSaveBook(book); books.unshift(book);
+    await sbSaveBook(book);
+    if (addManStatus !== 'unread') {
+      statusMap.set(String(id), addManStatus);
+      await sbSetStatus(String(id), addManStatus);
+    }
+    books.unshift(book);
     st.textContent='✓ Added!';
+    sortDir = 'desc'; syncSortUI('dateAdded');
     applyFilters(); updateStats();
     setTimeout(closeAddModal,700);
   } catch(e) { st.textContent='⚠ '+e.message; }
