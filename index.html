@@ -1384,7 +1384,11 @@ function applyFilters() {
   filteredBooks = books.filter(b => {
     const status = getStatus(b.id);
     // Status
-    if (currentStatus !== 'all' && status !== currentStatus) return false;
+    if (currentStatus !== 'all') {
+      // 'reread' (want to re-read) implies already read — include it under the 'read' filter
+      if (currentStatus === 'read') { if (status !== 'read' && status !== 'reread') return false; }
+      else { if (status !== currentStatus) return false; }
+    }
     // Format — "BOOK" filter matches both "BOOK" and legacy "PHYS" in stored data
     if (selectedFormats.size > 0) {
       const bFmts = new Set([...(b.formats||[]), ...(b.isComic?['COMIC']:[])]);
@@ -1545,9 +1549,9 @@ function renderStats(year) {
   const isComic = b => (b.formats||[]).includes('COMIC') || b.isComic;
   const fmt = n => n.toLocaleString();
 
-  // Count unique books read in the period — status must be 'read', matching the grid Read tab
+  // Count unique books read in the period — 'reread' (want to re-read) counts as read
   const allEntries = books.filter(b => {
-    if (getStatus(b.id) !== 'read') return false;
+    const s = getStatus(b.id); if (s !== 'read' && s !== 'reread') return false;
     const dates = b.readDates || (b.dateRead ? [b.dateRead] : []);
     return isAllTime ? dates.some(Boolean) : dates.some(d => d && d.startsWith(String(year)));
   });
