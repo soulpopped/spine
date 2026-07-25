@@ -728,7 +728,7 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <div id="man-read-dates-wrap" style="display:none;margin-top:10px">
           <label style="display:block;margin-bottom:6px;font-size:.72rem">Date(s) Read</label>
           <div id="man-read-dates-list"></div>
-          <button class="btn" onclick="addReadDateRow('man-read-dates-list')" style="font-size:.7rem;padding:4px 10px;margin-top:4px">+ Add date</button>
+          <button class="btn" onclick="addReadDateRowTo('man-read-dates-list')" style="font-size:.7rem;padding:4px 10px;margin-top:4px">+ Add date</button>
         </div>
       </div>
       <button class="btn btn-accent" onclick="addManualBook()">Add to SPINE</button>
@@ -780,7 +780,7 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <div id="conf-read-dates-wrap" style="display:none;margin-top:10px">
           <label style="display:block;margin-bottom:6px;font-size:.72rem">Date(s) Read</label>
           <div id="conf-read-dates-list"></div>
-          <button class="btn" onclick="addReadDateRow('conf-read-dates-list')" style="font-size:.7rem;padding:4px 10px;margin-top:4px">+ Add date</button>
+          <button class="btn" onclick="addReadDateRowTo('conf-read-dates-list')" style="font-size:.7rem;padding:4px 10px;margin-top:4px">+ Add date</button>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap">
@@ -2618,7 +2618,7 @@ function setAddConfStatus(status) {
   const wrap = document.getElementById('conf-read-dates-wrap');
   wrap.style.display = status==='read' ? '' : 'none';
   if (status==='read' && !document.getElementById('conf-read-dates-list').children.length)
-    addReadDateRow('conf-read-dates-list');
+    addReadDateRowTo('conf-read-dates-list');
 }
 function setAddManStatus(status) {
   addManStatus = status;
@@ -2627,9 +2627,9 @@ function setAddManStatus(status) {
   const wrap = document.getElementById('man-read-dates-wrap');
   wrap.style.display = status==='read' ? '' : 'none';
   if (status==='read' && !document.getElementById('man-read-dates-list').children.length)
-    addReadDateRow('man-read-dates-list');
+    addReadDateRowTo('man-read-dates-list');
 }
-function addReadDateRow(containerId) {
+function addReadDateRowTo(containerId) {
   const container = document.getElementById(containerId);
   const row = document.createElement('div');
   row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px';
