@@ -2693,6 +2693,9 @@ function openAddModal() {
   addFiction = null; isbnFiction = null; manFiction = null;
   document.querySelectorAll('#add-format-chips .format-chip,#isbn-format-chips .format-chip,#man-format-chips .format-chip').forEach(c=>c.className='format-chip');
   ['add','isbn','man'].forEach(p=>['fiction','nonfiction','kids'].forEach(k=>{const b=document.getElementById(`${p}-fc-${k}`);if(b)b.className='fiction-chip';}));
+  applyLastUsed('add', addFormats);
+  applyLastUsed('isbn', isbnFormats);
+  applyLastUsed('man', manFormats);
   document.getElementById('gb-search-input').value='';
   document.getElementById('isbn-input').value='';
   document.getElementById('book-search-results').innerHTML='';
@@ -2788,6 +2791,7 @@ function showConfirmForm(book, source) {
   confFormats.clear(); confFiction = null;
   document.querySelectorAll('#conf-format-chips .format-chip').forEach(c=>c.className='format-chip');
   ['fiction','nonfiction','kids'].forEach(k=>{const b=document.getElementById(`conf-fc-${k}`);if(b)b.className='fiction-chip';});
+  applyLastUsed('conf', confFormats);
   document.getElementById('add-conf-status').textContent = '';
   updateConfThumb();
 }
@@ -2845,6 +2849,7 @@ async function addConfirmedBook() {
   };
   try {
     await sbSaveBook(book);
+    saveLastUsed(confFormats, confFiction);
     if (addConfStatus !== 'unread') {
       statusMap.set(String(id), addConfStatus);
       await sbSetStatus(String(id), addConfStatus);
@@ -2913,6 +2918,7 @@ async function addSelectedBook() {
 
   try {
     await sbSaveBook(book);
+    saveLastUsed(addFormats, addFiction);
     books.unshift(book);
     st.textContent='✓ Added!';
     syncSortUI('dateAdded');
@@ -2975,7 +2981,9 @@ async function addISBNBook() {
     dateAdded:new Date().toISOString().slice(0,10),
   };
   try {
-    await sbSaveBook(book); books.unshift(book);
+    await sbSaveBook(book);
+    saveLastUsed(isbnFormats, isbnFiction);
+    books.unshift(book);
     st.textContent='✓ Added!';
     applyFilters(); updateStats();
     setTimeout(closeAddModal,700);
@@ -3007,6 +3015,7 @@ async function addManualBook() {
   };
   try {
     await sbSaveBook(book);
+    saveLastUsed(manFormats, manFiction);
     if (addManStatus !== 'unread') {
       statusMap.set(String(id), addManStatus);
       await sbSetStatus(String(id), addManStatus);
@@ -3510,6 +3519,27 @@ function setTabFiction(prefix, val) {
     const btn = document.getElementById(`${prefix}-fc-${k}`);
     if (btn) btn.className = 'fiction-chip' + (newVal === k ? ' active-' + k : '');
   });
+}
+function saveLastUsed(formatSet, fictionVal) {
+  try {
+    localStorage.setItem('spine_last_formats', JSON.stringify([...formatSet]));
+    localStorage.setItem('spine_last_fiction', fictionVal || '');
+  } catch(e) {}
+}
+function applyLastUsed(prefix, formatSet) {
+  let lastFmts = [];
+  try { lastFmts = JSON.parse(localStorage.getItem('spine_last_formats') || '[]'); } catch(e) {}
+  const lastFiction = localStorage.getItem('spine_last_fiction') || null;
+  lastFmts.forEach(fmt => {
+    const chip = document.querySelector(`#${prefix}-format-chips [data-fmt="${fmt}"]`);
+    if (chip) {
+      formatSet.add(fmt);
+      chip.className = 'format-chip active-' + fmt.toLowerCase();
+    }
+  });
+  if (lastFiction && ['fiction','nonfiction','kids'].includes(lastFiction)) {
+    setTabFiction(prefix, lastFiction);
+  }
 }
 function highlightFictionStatus() {
   ['fiction','nonfiction','kids'].forEach(k => {
