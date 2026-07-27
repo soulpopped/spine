@@ -670,6 +670,14 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
           <button class="format-chip" data-fmt="AUDIO" onclick="toggleAddFormat(this)">AUDIO</button>
           <button class="format-chip" data-fmt="COMIC" onclick="toggleAddFormat(this)">COMIC</button>
         </div>
+        <div style="margin-top:10px">
+          <label>Fiction / Non-Fiction</label>
+          <div class="format-chips" style="margin-top:6px">
+            <button class="fiction-chip" id="add-fc-fiction" onclick="setTabFiction('add','fiction')">Fiction</button>
+            <button class="fiction-chip" id="add-fc-nonfiction" onclick="setTabFiction('add','nonfiction')">Non-Fiction</button>
+            <button class="fiction-chip" id="add-fc-kids" onclick="setTabFiction('add','kids')">Kids</button>
+          </div>
+        </div>
         <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
           <button class="btn btn-accent" onclick="addSelectedBook()">Add to SPINE</button>
           <button class="btn" onclick="clearBookSelection()">Cancel Selection</button>
@@ -694,6 +702,14 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
           <button class="format-chip" data-fmt="AUDIO" onclick="toggleIsbnFormat(this)">AUDIO</button>
           <button class="format-chip" data-fmt="COMIC" onclick="toggleIsbnFormat(this)">COMIC</button>
         </div>
+        <div style="margin-top:10px">
+          <label>Fiction / Non-Fiction</label>
+          <div class="format-chips" style="margin-top:6px">
+            <button class="fiction-chip" id="isbn-fc-fiction" onclick="setTabFiction('isbn','fiction')">Fiction</button>
+            <button class="fiction-chip" id="isbn-fc-nonfiction" onclick="setTabFiction('isbn','nonfiction')">Non-Fiction</button>
+            <button class="fiction-chip" id="isbn-fc-kids" onclick="setTabFiction('isbn','kids')">Kids</button>
+          </div>
+        </div>
         <div style="display:flex;gap:8px;margin-top:12px">
           <button class="btn btn-accent" onclick="addISBNBook()">Add to SPINE</button>
         </div>
@@ -711,6 +727,14 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
           <button class="format-chip" data-fmt="PHYS" onclick="toggleManFormat(this)">BOOK</button>
           <button class="format-chip" data-fmt="AUDIO" onclick="toggleManFormat(this)">AUDIO</button>
           <button class="format-chip" data-fmt="COMIC" onclick="toggleManFormat(this)">COMIC</button>
+        </div>
+        <div style="margin-top:10px">
+          <label>Fiction / Non-Fiction</label>
+          <div class="format-chips" style="margin-top:6px">
+            <button class="fiction-chip" id="man-fc-fiction" onclick="setTabFiction('man','fiction')">Fiction</button>
+            <button class="fiction-chip" id="man-fc-nonfiction" onclick="setTabFiction('man','nonfiction')">Non-Fiction</button>
+            <button class="fiction-chip" id="man-fc-kids" onclick="setTabFiction('man','kids')">Kids</button>
+          </div>
         </div>
       </div>
       <div class="fix-row">
@@ -769,6 +793,14 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
           <button class="format-chip" data-fmt="PHYS" onclick="toggleConfFormat(this)">BOOK</button>
           <button class="format-chip" data-fmt="AUDIO" onclick="toggleConfFormat(this)">AUDIO</button>
           <button class="format-chip" data-fmt="COMIC" onclick="toggleConfFormat(this)">COMIC</button>
+        </div>
+        <div style="margin-top:10px">
+          <label>Fiction / Non-Fiction</label>
+          <div class="format-chips" style="margin-top:6px">
+            <button class="fiction-chip" id="conf-fc-fiction" onclick="setTabFiction('conf','fiction')">Fiction</button>
+            <button class="fiction-chip" id="conf-fc-nonfiction" onclick="setTabFiction('conf','nonfiction')">Non-Fiction</button>
+            <button class="fiction-chip" id="conf-fc-kids" onclick="setTabFiction('conf','kids')">Kids</button>
+          </div>
         </div>
       </div>
       <div class="form-group full" style="margin-top:12px">
@@ -947,6 +979,10 @@ let enrichPending  = new Set();
 let addFormats   = new Set();
 let isbnFormats  = new Set();
 let manFormats   = new Set();
+let addFiction = null;
+let isbnFiction = null;
+let manFiction = null;
+let confFiction = null;
 let selectedDecades = new Set();
 let selectedSeries = null;
 let selectedFictionFilter = '';
@@ -2654,7 +2690,9 @@ function getReadDatesFromList(containerId) {
 function openAddModal() {
   selectedGBBook=null; isbnGBBook=null;
   addFormats.clear(); isbnFormats.clear(); manFormats.clear();
+  addFiction = null; isbnFiction = null; manFiction = null;
   document.querySelectorAll('#add-format-chips .format-chip,#isbn-format-chips .format-chip,#man-format-chips .format-chip').forEach(c=>c.className='format-chip');
+  ['add','isbn','man'].forEach(p=>['fiction','nonfiction','kids'].forEach(k=>{const b=document.getElementById(`${p}-fc-${k}`);if(b)b.className='fiction-chip';}));
   document.getElementById('gb-search-input').value='';
   document.getElementById('isbn-input').value='';
   document.getElementById('book-search-results').innerHTML='';
@@ -2747,8 +2785,9 @@ function showConfirmForm(book, source) {
   document.getElementById('conf-series').value  = book.series || '';
   document.getElementById('conf-series-pos').value = book.seriesPosition || '';
   document.getElementById('conf-isbn').value    = book.isbn13 || '';
-  confFormats.clear();
+  confFormats.clear(); confFiction = null;
   document.querySelectorAll('#conf-format-chips .format-chip').forEach(c=>c.className='format-chip');
+  ['fiction','nonfiction','kids'].forEach(k=>{const b=document.getElementById(`conf-fc-${k}`);if(b)b.className='fiction-chip';});
   document.getElementById('add-conf-status').textContent = '';
   updateConfThumb();
 }
@@ -2795,6 +2834,7 @@ async function addConfirmedBook() {
     audioLength:  null,
     formats:      [...confFormats].filter(f=>f!=='COMIC'),
     isComic:      confFormats.has('COMIC'),
+    fictionStatus: confFiction,
     genres:       _confBook?.genres || [],
     yearPublished: parseInt(document.getElementById('conf-year').value) || null,
     publisher:    document.getElementById('conf-publisher').value.trim() || null,
@@ -2863,6 +2903,7 @@ async function addSelectedBook() {
     pages:gb.pages||null, audioLength:null,
     formats:[...addFormats].filter(f=>f!=='COMIC'),
     isComic:addFormats.has('COMIC'),
+    fictionStatus: addFiction,
     genres:gb.genres||[], yearPublished:gb.yearPublished||null,
     publisher:gb.publisher||'',
     series:null, seriesPosition:null,
@@ -2926,6 +2967,7 @@ async function addISBNBook() {
     pages:gb.pages||null, audioLength:null,
     formats:[...isbnFormats].filter(f=>f!=='COMIC'),
     isComic:isbnFormats.has('COMIC'),
+    fictionStatus: isbnFiction,
     genres:gb.genres||[], yearPublished:gb.yearPublished||null,
     publisher:gb.publisher||'',
     series:null, seriesPosition:null,
@@ -2957,6 +2999,7 @@ async function addManualBook() {
     audioLength:null,
     formats:[...manFormats].filter(f=>f!=='COMIC'),
     isComic:manFormats.has('COMIC'),
+    fictionStatus: manFiction,
     genres:[], yearPublished:null, publisher:'',
     series:document.getElementById('man-series').value.trim()||null,
     seriesPosition:null, rating:null, dateRead:readDates[0]||null, readDates,
@@ -3455,6 +3498,19 @@ function toggleFictionFilter(val, btn) {
 }
 
 function setFictionStatus(val) { fixFictionVal = val; highlightFictionStatus(); }
+function setTabFiction(prefix, val) {
+  const store = { add: () => addFiction, isbn: () => isbnFiction, man: () => manFiction, conf: () => confFiction };
+  const current = store[prefix]();
+  const newVal = current === val ? null : val;
+  if (prefix === 'add') addFiction = newVal;
+  else if (prefix === 'isbn') isbnFiction = newVal;
+  else if (prefix === 'man') manFiction = newVal;
+  else if (prefix === 'conf') confFiction = newVal;
+  ['fiction','nonfiction','kids'].forEach(k => {
+    const btn = document.getElementById(`${prefix}-fc-${k}`);
+    if (btn) btn.className = 'fiction-chip' + (newVal === k ? ' active-' + k : '');
+  });
+}
 function highlightFictionStatus() {
   ['fiction','nonfiction','kids'].forEach(k => {
     const btn = document.getElementById('fix-fc-'+k);
