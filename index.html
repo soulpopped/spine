@@ -721,6 +721,7 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     <div class="tab-pane" id="add-tab-manual">
       <div class="form-group"><label>Title *</label><input type="text" id="man-title"></div>
       <div class="form-group"><label>Author</label><input type="text" id="man-author"></div>
+      <div class="form-group"><label>Cover URL</label><input type="text" id="man-cover" placeholder="https://…"></div>
       <div class="form-group"><label>Format(s) owned</label>
         <div class="format-chips" id="man-format-chips">
           <button class="format-chip" data-fmt="KINDLE" onclick="toggleManFormat(this)">KINDLE</button>
@@ -738,10 +739,27 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         </div>
       </div>
       <div class="fix-row">
-        <div class="form-group"><label>ISBN-13</label><input type="text" id="man-isbn"></div>
         <div class="form-group"><label>Pages</label><input type="number" id="man-pages" min="1"></div>
+        <div class="form-group"><label>Year Published</label><input type="number" id="man-year" min="1000" max="2100"></div>
       </div>
-      <div class="form-group"><label>Series</label><input type="text" id="man-series"></div>
+      <div class="form-group"><label>Publisher</label><input type="text" id="man-publisher"></div>
+      <div class="fix-row">
+        <div class="form-group"><label>Series</label><input type="text" id="man-series"></div>
+        <div class="form-group"><label>Position</label><input type="number" id="man-series-pos" min="1" step="0.5"></div>
+      </div>
+      <div class="form-group"><label>ISBN-13</label><input type="text" id="man-isbn"></div>
+      <div class="form-group"><label>My Rating</label>
+        <div style="display:flex;align-items:center;gap:4px;margin-top:4px">
+          <div class="star-row" id="man-stars">
+            <button class="star-btn" data-val="1" onclick="setManRating(1)">★</button>
+            <button class="star-btn" data-val="2" onclick="setManRating(2)">★</button>
+            <button class="star-btn" data-val="3" onclick="setManRating(3)">★</button>
+            <button class="star-btn" data-val="4" onclick="setManRating(4)">★</button>
+            <button class="star-btn" data-val="5" onclick="setManRating(5)">★</button>
+          </div>
+          <button class="btn" onclick="setManRating(0)" style="font-size:.7rem;padding:3px 8px;margin-left:8px">Clear</button>
+        </div>
+      </div>
       <div class="form-group"><label>Description</label><textarea id="man-desc" rows="3" style="resize:vertical"></textarea></div>
       <div class="form-group" style="margin-top:4px">
         <label>Status</label>
@@ -813,6 +831,19 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
           <label style="display:block;margin-bottom:6px;font-size:.72rem">Date(s) Read</label>
           <div id="conf-read-dates-list"></div>
           <button class="btn" onclick="addReadDateRowTo('conf-read-dates-list')" style="font-size:.7rem;padding:4px 10px;margin-top:4px">+ Add date</button>
+        </div>
+      </div>
+      <div class="form-group full" style="margin-top:12px">
+        <label>My Rating</label>
+        <div style="display:flex;align-items:center;gap:4px;margin-top:4px">
+          <div class="star-row" id="conf-stars">
+            <button class="star-btn" data-val="1" onclick="setConfRating(1)">★</button>
+            <button class="star-btn" data-val="2" onclick="setConfRating(2)">★</button>
+            <button class="star-btn" data-val="3" onclick="setConfRating(3)">★</button>
+            <button class="star-btn" data-val="4" onclick="setConfRating(4)">★</button>
+            <button class="star-btn" data-val="5" onclick="setConfRating(5)">★</button>
+          </div>
+          <button class="btn" onclick="setConfRating(0)" style="font-size:.7rem;padding:3px 8px;margin-left:8px">Clear</button>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap">
@@ -966,6 +997,8 @@ let selectedFormats = new Set();
 let sortOrder    = 'title';
 let fixTargetId  = null;
 let fixRating    = 0;
+let manRating    = 0;
+let confRating   = 0;
 let fixFormats   = new Set();
 let fixStatusVal = 'unread';
 let addConfStatus = 'unread';
@@ -2374,6 +2407,18 @@ function renderFixStars() {
     btn.classList.toggle('lit', parseInt(btn.dataset.val) <= fixRating);
   });
 }
+function setManRating(val) { manRating=(manRating===val?0:val); renderManStars(); }
+function renderManStars() {
+  document.querySelectorAll('#man-stars .star-btn').forEach(btn => {
+    btn.classList.toggle('lit', parseInt(btn.dataset.val) <= manRating);
+  });
+}
+function setConfRating(val) { confRating=(confRating===val?0:val); renderConfStars(); }
+function renderConfStars() {
+  document.querySelectorAll('#conf-stars .star-btn').forEach(btn => {
+    btn.classList.toggle('lit', parseInt(btn.dataset.val) <= confRating);
+  });
+}
 
 async function saveFixModal() {
   const idx = books.findIndex(b=>String(b.id)===fixTargetId);
@@ -2706,8 +2751,12 @@ function openAddModal() {
   document.getElementById('gb-search-status').textContent='';
   document.getElementById('add-status').textContent='';
   document.getElementById('isbn-status').textContent='';
-  ['man-title','man-author','man-isbn','man-series','man-desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['man-title','man-author','man-cover','man-publisher','man-isbn','man-series','man-desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('man-pages').value='';
+  document.getElementById('man-year').value='';
+  document.getElementById('man-series-pos').value='';
+  manRating=0; renderManStars();
+  confRating=0;
   document.getElementById('man-status').textContent='';
   // Reset status UI
   addConfStatus = 'unread'; addManStatus = 'unread';
@@ -2794,6 +2843,7 @@ function showConfirmForm(book, source) {
   applyLastUsed('conf', confFormats);
   document.getElementById('add-conf-status').textContent = '';
   updateConfThumb();
+  confRating = 0; renderConfStars();
 }
 
 function backToAddSearch() {
@@ -2844,7 +2894,7 @@ async function addConfirmedBook() {
     publisher:    document.getElementById('conf-publisher').value.trim() || null,
     series:       document.getElementById('conf-series').value.trim() || null,
     seriesPosition: parseFloat(document.getElementById('conf-series-pos').value) || null,
-    rating: null, dateRead: readDates[0] || null, readDates,
+    rating: confRating||null, dateRead: readDates[0] || null, readDates,
     dateAdded: new Date().toISOString().slice(0,10),
   };
   try {
@@ -3001,16 +3051,18 @@ async function addManualBook() {
   const book={
     id, isbn13:isbn.length>=13?isbn:'', asin:'',
     title, author:document.getElementById('man-author').value.trim(),
-    cover:'', customCover:null,
+    cover:document.getElementById('man-cover').value.trim()||'', customCover:null,
     description:document.getElementById('man-desc').value.trim()||null,
     pages:parseInt(document.getElementById('man-pages').value)||null,
     audioLength:null,
     formats:[...manFormats].filter(f=>f!=='COMIC'),
     isComic:manFormats.has('COMIC'),
     fictionStatus: manFiction,
-    genres:[], yearPublished:null, publisher:'',
+    genres:[], yearPublished:parseInt(document.getElementById('man-year').value)||null,
+    publisher:document.getElementById('man-publisher').value.trim()||null,
     series:document.getElementById('man-series').value.trim()||null,
-    seriesPosition:null, rating:null, dateRead:readDates[0]||null, readDates,
+    seriesPosition:parseFloat(document.getElementById('man-series-pos').value)||null,
+    rating:manRating||null, dateRead:readDates[0]||null, readDates,
     dateAdded:new Date().toISOString().slice(0,10),
   };
   try {
