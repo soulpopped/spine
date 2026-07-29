@@ -198,8 +198,10 @@ body.public-mode .card-fix-btn,body.public-mode .card-read-btn,body.public-mode 
 #detail-year{font-size:.75rem;color:var(--text-dim)}
 #detail-pages,.detail-pages-span{font-size:.75rem;color:var(--text-dim)}
 #detail-rating{display:flex;gap:2px;margin-bottom:14px}
-#detail-rating .star{font-size:1rem;color:var(--accent);opacity:.25}
-#detail-rating .star.lit{opacity:1}
+#detail-rating .star{font-size:1rem;color:var(--text-dim)}
+#detail-rating .star.lit{color:var(--accent)}
+#detail-rating .star.half{color:var(--text-dim);position:relative}
+#detail-rating .star.half::after{content:'★';position:absolute;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;color:var(--accent);clip-path:inset(0 50% 0 0);pointer-events:none}
 #detail-description{font-size:.88rem;line-height:1.65;color:var(--text-dim);margin-bottom:18px;max-height:320px;overflow-y:auto;white-space:pre-line}
 #detail-genres{display:none}
 #detail-dates-read{font-size:.8rem;color:var(--text-muted);margin-bottom:10px;line-height:1.6}
@@ -1896,7 +1898,10 @@ function openDetailModal(id) {
   // Rating stars
   const rating = book.rating || 0;
   document.getElementById('detail-rating').innerHTML = [1,2,3,4,5]
-    .map(i => `<span class="star${i<=rating?' lit':''}">★</span>`).join('');
+    .map(i => {
+      const cls = i <= rating ? ' lit' : (i - 0.5 === rating ? ' half' : '');
+      return `<span class="star${cls}">★</span>`;
+    }).join('');
 
   // Dates read
   const datesReadEl = document.getElementById('detail-dates-read');
