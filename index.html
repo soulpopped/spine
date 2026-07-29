@@ -198,7 +198,7 @@ body.public-mode .card-fix-btn,body.public-mode .card-read-btn,body.public-mode 
 #detail-year{font-size:.75rem;color:var(--text-dim)}
 #detail-pages,.detail-pages-span{font-size:.75rem;color:var(--text-dim)}
 #detail-rating{display:flex;gap:2px;margin-bottom:14px}
-#detail-rating .star{font-size:1rem;color:var(--text-dim)}
+#detail-rating .star{font-size:1.25rem;color:var(--text-dim)}
 #detail-rating .star.lit{color:var(--accent)}
 #detail-rating .star.half{color:var(--text-dim);position:relative}
 #detail-rating .star.half::after{content:'★';position:absolute;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;color:var(--accent);clip-path:inset(0 50% 0 0);pointer-events:none}
@@ -247,11 +247,10 @@ body.public-mode .card-fix-btn,body.public-mode .card-read-btn,body.public-mode 
 .format-chip.active-phys{background:rgba(180,130,20,.15);border-color:#c8960a;color:#e8b012}
 .format-chip.active-audio{background:rgba(110,72,210,.15);border-color:#8b5cf6;color:#a78bfa}
 .format-chip.active-comic{background:rgba(220,40,40,.15);border-color:#ef4444;color:#f87171}
-/* star rating in fix modal */
+/* star rating in fix/add modals */
 .star-row{display:flex;gap:4px;align-items:center}
-.star-btn{background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-dim);transition:color .1s;padding:2px;position:relative}
+.star-btn{background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-dim);transition:color .1s,transform .1s;padding:2px;position:relative}
 .star-btn.lit{color:#f59e0b}
-.star-btn:hover{color:#f59e0b}
 .star-btn.half{color:var(--text-dim)}
 .star-btn.half::after{content:'★';position:absolute;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;color:#f59e0b;clip-path:inset(0 50% 0 0);font-size:inherit;pointer-events:none}
 
@@ -283,8 +282,10 @@ body.public-mode .card-fix-btn,body.public-mode .card-read-btn,body.public-mode 
 #rate-book-author{font-size:.75rem;color:var(--text-muted);margin-bottom:18px}
 #rate-prompt{font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px}
 #rate-stars{display:flex;gap:4px;justify-content:center;margin-bottom:18px}
-.rate-star{background:none;border:none;font-size:2rem;cursor:pointer;color:var(--text-dim);transition:color .08s,transform .08s;padding:2px 3px;line-height:1}
+.rate-star{background:none;border:none;font-size:2rem;cursor:pointer;color:var(--text-dim);transition:color .08s,transform .08s;padding:2px 3px;line-height:1;position:relative}
 .rate-star.lit,.rate-star.hover-lit{color:#f59e0b;transform:scale(1.12)}
+.rate-star.half{color:var(--text-dim);transform:scale(1.12)}
+.rate-star.half::after{content:'★';position:absolute;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;color:#f59e0b;clip-path:inset(0 50% 0 0);font-size:inherit;pointer-events:none}
 #rate-skip{background:none;border:none;font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);cursor:pointer;font-family:inherit;padding:4px 8px;transition:color .15s}
 #rate-skip:hover{color:var(--text)}
 
@@ -2316,7 +2317,7 @@ function openMarkReadModal(id) {
   markDateId = id;
   const today = new Date().toISOString().slice(0,10);
   const inp = document.getElementById('mark-date-input');
-  inp.value = ''; // blank by default — date is optional
+  inp.value = today;
   inp.max = today;
   document.getElementById('mark-date-overlay').classList.add('active');
   setTimeout(() => inp.focus(), 60);
@@ -2417,6 +2418,7 @@ function renderFixStars() {
     const v = parseInt(btn.dataset.val);
     btn.classList.toggle('lit', v <= fixRating);
     btn.classList.toggle('half', v - 0.5 === fixRating);
+    btn.style.transform = '';
   });
 }
 function setManRating(val, e) {
@@ -2428,6 +2430,7 @@ function renderManStars() {
     const v = parseInt(btn.dataset.val);
     btn.classList.toggle('lit', v <= manRating);
     btn.classList.toggle('half', v - 0.5 === manRating);
+    btn.style.transform = '';
   });
 }
 function setConfRating(val, e) {
@@ -2439,6 +2442,7 @@ function renderConfStars() {
     const v = parseInt(btn.dataset.val);
     btn.classList.toggle('lit', v <= confRating);
     btn.classList.toggle('half', v - 0.5 === confRating);
+    btn.style.transform = '';
   });
 }
 
@@ -3488,6 +3492,32 @@ async function bulkDelete() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// STAR HOVER UTILITIES (edit forms)
+// ═══════════════════════════════════════════════════════════════
+function previewStarRow(container, previewVal) {
+  container.querySelectorAll('.star-btn').forEach(btn => {
+    const v = parseInt(btn.dataset.val);
+    const isLit  = v <= previewVal;
+    const isHalf = v - 0.5 === previewVal;
+    btn.classList.toggle('lit', isLit);
+    btn.classList.toggle('half', isHalf);
+    btn.style.transform = (isLit || isHalf) ? 'scale(1.12)' : '';
+  });
+}
+function attachStarHover(containerSelector, renderFn) {
+  const container = document.querySelector(containerSelector);
+  if (!container) return;
+  container.querySelectorAll('.star-btn').forEach(btn => {
+    const val = parseInt(btn.dataset.val);
+    btn.addEventListener('mousemove', e => {
+      const half = e.offsetX < btn.offsetWidth / 2;
+      previewStarRow(container, half ? val - 0.5 : val);
+    });
+  });
+  container.addEventListener('mouseleave', () => renderFn());
+}
+
+// ═══════════════════════════════════════════════════════════════
 // RATE MODAL
 // ═══════════════════════════════════════════════════════════════
 function openRateModal(id) {
@@ -3507,13 +3537,20 @@ function openRateModal(id) {
   rateVal = book.rating || 0;
   renderRateStars();
 
-  // Wire up star events
+  // Wire up star events with half-star support
   document.querySelectorAll('.rate-star').forEach(btn => {
     const val = parseInt(btn.dataset.val);
-    btn.onclick      = () => selectRateStar(val);
-    btn.onmouseover  = () => hoverRateStar(val);
-    btn.onmouseout   = () => renderRateStars();
+    btn.onclick = (e) => {
+      const half = e.offsetX < btn.offsetWidth / 2;
+      selectRateStar(half ? val - 0.5 : val);
+    };
+    btn.onmousemove = (e) => {
+      const half = e.offsetX < btn.offsetWidth / 2;
+      hoverRateStar(half ? val - 0.5 : val);
+    };
+    btn.onmouseout = null;
   });
+  document.getElementById('rate-stars').onmouseleave = () => renderRateStars();
 
   document.getElementById('rate-overlay').classList.add('active');
 }
@@ -3525,15 +3562,19 @@ function closeRateModal() {
 
 function renderRateStars() {
   document.querySelectorAll('.rate-star').forEach(btn => {
-    btn.classList.toggle('lit', parseInt(btn.dataset.val) <= rateVal);
+    const v = parseInt(btn.dataset.val);
+    btn.classList.toggle('lit',      v <= rateVal);
+    btn.classList.toggle('half',     v - 0.5 === rateVal);
     btn.classList.remove('hover-lit');
   });
 }
 
 function hoverRateStar(val) {
   document.querySelectorAll('.rate-star').forEach(btn => {
+    const v = parseInt(btn.dataset.val);
     btn.classList.remove('lit');
-    btn.classList.toggle('hover-lit', parseInt(btn.dataset.val) <= val);
+    btn.classList.toggle('hover-lit', v <= val);
+    btn.classList.toggle('half',      v - 0.5 === val);
   });
 }
 
@@ -3685,6 +3726,11 @@ document.addEventListener('keydown', e => {
     if (inSelectMode) { exitSelectMode(); return; }
   }
 });
+
+// Attach cumulative hover + half-star preview to edit star rows
+attachStarHover('#fix-stars',  renderFixStars);
+attachStarHover('#man-stars',  renderManStars);
+attachStarHover('#conf-stars', renderConfStars);
 </script>
 </body>
 </html>
