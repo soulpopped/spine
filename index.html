@@ -386,6 +386,12 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
 #mark-date-input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:.9rem;padding:10px 12px;border-radius:2px;margin-bottom:14px;box-sizing:border-box;outline:none}
 #mark-date-input:focus{border-color:var(--accent)}
 .mark-date-btns{display:flex;gap:8px}
+.mark-date-rating-label{font-size:.63rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-muted);margin:4px 0 8px}
+#mark-read-stars{display:flex;gap:4px;align-items:center;margin-bottom:16px}
+.mark-read-star{background:none;border:none;font-size:1.7rem;cursor:pointer;color:var(--text-dim);transition:color .08s,transform .08s;padding:2px 3px;line-height:1;position:relative}
+.mark-read-star.lit,.mark-read-star.hover-lit{color:#f59e0b;transform:scale(1.1)}
+.mark-read-star.half{color:var(--text-dim);transform:scale(1.1)}
+.mark-read-star.half::after{content:'★';position:absolute;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;color:#f59e0b;clip-path:inset(0 50% 0 0);font-size:inherit;pointer-events:none}
 
 @media(max-width:600px){
   #book-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:9px}
@@ -989,8 +995,17 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
 <div id="mark-date-overlay" onclick="if(event.target===this)cancelMarkDate()">
   <div id="mark-date-content">
     <div class="mark-date-ttl">Mark as Read</div>
-    <div class="mark-date-sub">Add a finish date (optional).</div>
+    <div class="mark-date-sub">Date and rating are both optional.</div>
     <input type="date" id="mark-date-input" onkeydown="if(event.key==='Enter')confirmMarkDate()">
+    <div class="mark-date-rating-label">My Rating</div>
+    <div id="mark-read-stars">
+      <button class="mark-read-star" data-val="1">★</button>
+      <button class="mark-read-star" data-val="2">★</button>
+      <button class="mark-read-star" data-val="3">★</button>
+      <button class="mark-read-star" data-val="4">★</button>
+      <button class="mark-read-star" data-val="5">★</button>
+      <button class="btn" onclick="setMarkReadRating(0)" style="font-size:.65rem;padding:3px 8px;margin-left:4px">Clear</button>
+    </div>
     <div class="mark-date-btns">
       <button class="btn btn-accent" style="flex:1" onclick="confirmMarkDate()">Mark Read</button>
       <button class="btn" onclick="cancelMarkDate()">Cancel</button>
@@ -2282,7 +2297,7 @@ async function quickMarkReading(e, id) {
   }
 }
 
-async function quickMarkRead(e, id, dateOverride) {
+async function quickMarkRead(e, id, dateOverride, ratingOverride) {
   if (e) { e.stopPropagation(); if (e.target) e.target.textContent = '✓ Saved'; }
   statusMap.set(id, 'read');
   const book = books.find(b=>String(b.id)===String(id));
@@ -2292,12 +2307,12 @@ async function quickMarkRead(e, id, dateOverride) {
     book.readDates = [...new Set([...existing, newDate])].sort();
     book.dateRead  = book.readDates[book.readDates.length - 1];
   }
+  if (book && ratingOverride) book.rating = ratingOverride;
   try {
     await sbSetStatus(id, 'read');
     if (book) await sbSaveBook(book);
     buildYearReadOptions();
     applyFilters();
-    openRateModal(id);
   } catch(err) {
     statusMap.set(id, 'unread');
     applyFilters();
@@ -2329,24 +2344,50 @@ function addReadDateRow(val) {
 // ═══════════════════════════════════════════════════════════════
 // MARK READ — DATE PICKER
 // ═══════════════════════════════════════════════════════════════
-let markDateId = null;
+let markDateId = null, markReadRating = 0;
 
 function openMarkReadModal(id) {
   markDateId = id;
+  markReadRating = 0;
   const today = new Date().toISOString().slice(0,10);
   const inp = document.getElementById('mark-date-input');
   inp.value = today;
   inp.max = today;
+  renderMarkReadStars();
+  document.querySelectorAll('.mark-read-star').forEach(btn => {
+    const val = parseInt(btn.dataset.val);
+    btn.onclick = (e) => { const half = e.offsetX < btn.offsetWidth/2; setMarkReadRating(half ? val-0.5 : val); };
+    btn.onmousemove = (e) => { const half = e.offsetX < btn.offsetWidth/2; hoverMarkReadStar(half ? val-0.5 : val); };
+  });
+  document.getElementById('mark-read-stars').onmouseleave = () => renderMarkReadStars();
   document.getElementById('mark-date-overlay').classList.add('active');
   setTimeout(() => inp.focus(), 60);
+}
+function setMarkReadRating(val) { markReadRating = markReadRating===val ? 0 : val; renderMarkReadStars(); }
+function renderMarkReadStars() {
+  document.querySelectorAll('.mark-read-star').forEach(btn => {
+    const v = parseInt(btn.dataset.val);
+    btn.classList.toggle('lit', v <= markReadRating);
+    btn.classList.toggle('half', v-0.5 === markReadRating);
+    btn.classList.remove('hover-lit');
+  });
+}
+function hoverMarkReadStar(val) {
+  document.querySelectorAll('.mark-read-star').forEach(btn => {
+    const v = parseInt(btn.dataset.val);
+    btn.classList.remove('lit');
+    btn.classList.toggle('hover-lit', v <= val);
+    btn.classList.toggle('half', v-0.5 === val);
+  });
 }
 
 async function confirmMarkDate() {
   const id = markDateId;
   if (!id) return;
   const dateVal = document.getElementById('mark-date-input').value;
+  const ratingVal = markReadRating || null;
   cancelMarkDate();
-  await quickMarkRead(null, id, dateVal || null); // null = no date
+  await quickMarkRead(null, id, dateVal || null, ratingVal);
   // Refresh detail modal if it's open for this book
   const readBtn = document.getElementById('detail-read-btn');
   if (readBtn && String(detailBookId) === String(id)) readBtn.style.display = 'none';
@@ -2355,6 +2396,7 @@ async function confirmMarkDate() {
 function cancelMarkDate() {
   document.getElementById('mark-date-overlay').classList.remove('active');
   markDateId = null;
+  markReadRating = 0;
 }
 
 // ═══════════════════════════════════════════════════════════════
