@@ -2510,7 +2510,7 @@ function renderConfStars() {
   });
 }
 
-async function saveFixModal() {
+async function saveFixModal(skipClose=false) {
   const idx = books.findIndex(b=>String(b.id)===fixTargetId);
   if (idx<0) return;
   const book = books[idx];
@@ -2547,16 +2547,18 @@ async function saveFixModal() {
     statusMap.set(fixTargetId, fixStatusVal);
     setMsg('✓ Saved', 'fix-status ok');
     buildYearReadOptions(); applyFilters();
-    setTimeout(closeFixModal, 500);
+    if (!skipClose) setTimeout(closeFixModal, 500);
   } catch(e) { setMsg('⚠ '+e.message, 'fix-status err'); }
 }
 
 async function saveFixNext() {
   const curId = fixTargetId;
-  await saveFixModal();
+  // Capture next before save, which may update filteredBooks
   const idx = filteredBooks.findIndex(b=>String(b.id)===curId);
   const next = filteredBooks[idx+1];
-  if (next) { closeFixModal(); setTimeout(()=>openFixModal(next.id),300); }
+  await saveFixModal(true); // skip auto-close
+  closeFixModal();
+  if (next) setTimeout(()=>openFixModal(next.id), 300);
 }
 
 async function refetchFromOL() {
