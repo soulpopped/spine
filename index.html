@@ -2553,12 +2553,12 @@ async function saveFixModal(skipClose=false) {
 
 async function saveFixNext() {
   const curId = fixTargetId;
-  // Capture next before save, which may update filteredBooks
+  // Capture next before save (filteredBooks may change after applyFilters)
   const idx = filteredBooks.findIndex(b=>String(b.id)===curId);
   const next = filteredBooks[idx+1];
-  await saveFixModal(true); // skip auto-close
-  closeFixModal();
-  if (next) setTimeout(()=>openFixModal(next.id), 300);
+  await saveFixModal(true); // save without auto-close
+  if (next) openFixModal(next.id); // repopulate modal in place — no close/reopen
+  else closeFixModal();
 }
 
 async function refetchFromOL() {
