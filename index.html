@@ -579,6 +579,7 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     <div class="fix-sub" id="fix-book-author"></div>
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
       <button class="btn btn-accent" onclick="saveFixModal()">Save Changes</button>
+      <button class="btn btn-accent" onclick="saveFixNext()">Save ▶</button>
       <div class="fix-status" id="fix-status-msg-top" style="margin:0"></div>
     </div>
 
@@ -640,6 +641,7 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     <div class="fix-section">Actions</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn btn-accent" onclick="saveFixModal()">Save Changes</button>
+      <button class="btn btn-accent" onclick="saveFixNext()">Save ▶</button>
       <button class="btn btn-danger" onclick="deleteBook()">Delete Book</button>
     </div>
     <div class="fix-status" id="fix-status-msg"></div>
@@ -2547,6 +2549,14 @@ async function saveFixModal() {
     buildYearReadOptions(); applyFilters();
     setTimeout(closeFixModal, 500);
   } catch(e) { setMsg('⚠ '+e.message, 'fix-status err'); }
+}
+
+async function saveFixNext() {
+  const curId = fixTargetId;
+  await saveFixModal();
+  const idx = filteredBooks.findIndex(b=>String(b.id)===curId);
+  const next = filteredBooks[idx+1];
+  if (next) { closeFixModal(); setTimeout(()=>openFixModal(next.id),300); }
 }
 
 async function refetchFromOL() {
