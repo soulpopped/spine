@@ -489,6 +489,7 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <div class="decade-opt"><input type="checkbox" value="2000" onchange="applyDecades()"><span>2000s</span></div>
         <div class="decade-opt"><input type="checkbox" value="2010" onchange="applyDecades()"><span>2010s</span></div>
         <div class="decade-opt"><input type="checkbox" value="2020" onchange="applyDecades()"><span>2020s</span></div>
+        <div class="decade-opt" style="border-top:1px solid var(--border);margin-top:4px;padding-top:6px"><input type="checkbox" value="nodata" onchange="applyDecades()"><span style="color:var(--text-dim)">No data</span></div>
       </div>
     </div>
   </div>
@@ -520,6 +521,7 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <button class="sort-btn" data-sort="author" data-label="Author" onclick="setSortOrder('author',this)">Author</button>
         <button class="sort-btn" data-sort="dateAdded" data-label="Added" onclick="setSortOrder('dateAdded',this)">Added</button>
         <button class="sort-btn" data-sort="dateRead" data-label="Read" onclick="setSortOrder('dateRead',this)">Read</button>
+        <button class="sort-btn" data-sort="yearPublished" data-label="Year" onclick="setSortOrder('yearPublished',this)">Year</button>
         <button class="sort-btn" data-sort="pages" data-label="Pages" onclick="setSortOrder('pages',this)">Pages</button>
       </div>
     </div>
@@ -1484,7 +1486,7 @@ function toggleFormatFilter(fmt, btn) {
 function applyDecades() {
   selectedDecades.clear();
   document.querySelectorAll('#decade-popup input[type=checkbox]:checked').forEach(cb => {
-    selectedDecades.add(parseInt(cb.value));
+    selectedDecades.add(cb.value === 'nodata' ? 'nodata' : parseInt(cb.value));
   });
   const btn = document.getElementById('decade-btn');
   btn.classList.toggle('has-selection', selectedDecades.size > 0);
@@ -1552,9 +1554,8 @@ function applyFilters() {
     // Decade (by year published)
     if (selectedDecades.size > 0) {
       const yr = b.yearPublished;
-      if (!yr) return false;
-      const dec = Math.floor(yr/10)*10;
-      if (!selectedDecades.has(dec)) return false;
+      if (!yr) { if (!selectedDecades.has('nodata')) return false; }
+      else { const dec = Math.floor(yr/10)*10; if (!selectedDecades.has(dec)) return false; }
     }
     // Series filter
     if (selectedSeries && b.series !== selectedSeries) return false;
@@ -1577,6 +1578,7 @@ function applyFilters() {
     else if (sortOrder==='dateAdded') cmp = (a.dateAdded||'0001-01-01').localeCompare(b.dateAdded||'0001-01-01');
     else if (sortOrder==='dateRead') cmp = (a.dateRead||'').localeCompare(b.dateRead||'');
     else if (sortOrder==='rating') cmp = (a.rating||0)-(b.rating||0);
+    else if (sortOrder==='yearPublished') cmp = (a.yearPublished||0)-(b.yearPublished||0);
     else if (sortOrder==='pages') cmp = (a.pages||0)-(b.pages||0);
     return sortDir === 'desc' ? -cmp : cmp;
   });
