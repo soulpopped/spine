@@ -616,6 +616,10 @@ hr.modal-hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       <div class="form-group"><label>Publisher</label><input type="text" id="fix-publisher"></div>
       <div class="form-group"><label>Year Published</label><input type="number" id="fix-year" min="1000" max="2099"></div>
       <div class="form-group"><label>Pages</label><input type="number" id="fix-pages" min="1"></div>
+      <div class="form-group">
+        <label>Date Started</label>
+        <input type="text" id="fix-date-started" placeholder="YYYY-MM-DD">
+      </div>
       <div class="form-group full">
         <label>Dates Read</label>
         <div id="fix-read-dates-list"></div>
@@ -1941,16 +1945,19 @@ function openDetailModal(id) {
       return `<span class="star${cls}">★</span>`;
     }).join('');
 
-  // Dates read
+  // Dates read + started
   const datesReadEl = document.getElementById('detail-dates-read');
   const rdDates = book.readDates?.length ? book.readDates : (book.dateRead ? [book.dateRead] : []);
-  if (rdDates.length) {
-    const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const fmtD = d => { const p = String(d).split('-'); return p.length===3 ? `${mo[+p[1]-1]} ${+p[2]}, ${p[0]}` : d; };
-    datesReadEl.textContent = 'Read ' + rdDates.map(fmtD).join(' · ');
+  const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const fmtD = d => { const p = String(d).split('-'); return p.length===3 ? `${mo[+p[1]-1]} ${+p[2]}, ${p[0]}` : d; };
+  const lines = [];
+  if (book.dateStarted) lines.push('Started ' + fmtD(book.dateStarted));
+  if (rdDates.length) lines.push('Read ' + rdDates.map(fmtD).join(' · '));
+  if (lines.length) {
+    datesReadEl.innerHTML = lines.join('<br>');
     datesReadEl.style.display = '';
   } else {
-    datesReadEl.textContent = '';
+    datesReadEl.innerHTML = '';
     datesReadEl.style.display = 'none';
   }
 
@@ -2294,6 +2301,11 @@ async function quickMarkReading(e, id) {
   statusMap.set(id, 'reading');
   try {
     await sbSetStatus(id, 'reading');
+    const book = books.find(b=>String(b.id)===String(id));
+    if (book && !book.dateStarted) {
+      book.dateStarted = new Date().toISOString().slice(0,10);
+      await sbSaveBook(book);
+    }
     applyFilters();
   } catch(err) {
     statusMap.set(id, prev);
@@ -2419,6 +2431,7 @@ function openFixModal(id) {
   document.getElementById('fix-author').value = book.author || '';
   document.getElementById('fix-year').value = book.yearPublished || '';
   document.getElementById('fix-pages').value = book.pages || '';
+  document.getElementById('fix-date-started').value = book.dateStarted || '';
   const rdList = document.getElementById('fix-read-dates-list');
   rdList.innerHTML = '';
   const rdDates = book.readDates?.length ? book.readDates : (book.dateRead ? [book.dateRead] : []);
@@ -2525,6 +2538,8 @@ async function saveFixModal(skipClose=false) {
   book.author      = document.getElementById('fix-author').value.trim();
   book.yearPublished = parseInt(document.getElementById('fix-year').value)||book.yearPublished||null;
   book.pages       = parseInt(document.getElementById('fix-pages').value)||book.pages||null;
+  const dsVal = normDate(document.getElementById('fix-date-started').value.trim());
+  book.dateStarted = dsVal || null;
   const rdDates = [...document.querySelectorAll('#fix-read-dates-list input')]
     .map(i => normDate(i.value.trim())).filter(Boolean).sort();
   book.readDates = rdDates.length ? rdDates : [];
